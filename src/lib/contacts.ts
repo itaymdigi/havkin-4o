@@ -19,9 +19,15 @@ export async function getContacts() {
 }
 
 export async function createContact(contact: Omit<Contact, "id" | "created_at" | "updated_at">) {
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    throw new Error("User must be authenticated to create contacts")
+  }
+
   const { data, error } = await supabase
     .from("contacts")
-    .insert([contact])
+    .insert([{ ...contact, user_id: user.id }])
     .select()
 
   if (error) {

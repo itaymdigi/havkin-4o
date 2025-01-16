@@ -14,8 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { PriceOffer, PriceOfferItem } from '@/types/price-offer';
 import { generatePDF } from '@/lib/pdf-generator';
+import { savePriceOffer } from '@/lib/price-offers';
 import { Trash2, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
+import { useUser } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
 // Validation schema
 const priceOfferSchema = z.object({
@@ -40,8 +43,10 @@ const priceOfferSchema = z.object({
 
 export default function PriceOffersPage() {
   const router = useRouter();
+  const { user, isLoading } = useUser();
   const [isGenerating, setIsGenerating] = useState(false);
   const [items, setItems] = useState<PriceOfferItem[]>([]);
+  const [isClient, setIsClient] = useState(false);
 
   const form = useForm<z.infer<typeof priceOfferSchema>>({
     resolver: zodResolver(priceOfferSchema),
@@ -59,10 +64,43 @@ export default function PriceOffersPage() {
     },
   });
 
+  // Set isClient to true on mount
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Handle auth state
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session && !isLoading) {
+        router.replace('/login?redirectTo=/price-offers');
+      }
+    };
+
+    if (isClient) {
+      checkAuth();
+    }
+  }, [isClient, isLoading, router]);
+
   // Update form items when items state changes
   useEffect(() => {
     form.setValue('items', items);
   }, [items, form]);
+
+  // Show loading state while checking auth
+  if (isLoading || !isClient || !user) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p>טוען...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const updateItemTotal = (index: number, field: 'quantity' | 'unitPrice', value: number) => {
     if (value < 0) return;
@@ -103,8 +141,13 @@ export default function PriceOffersPage() {
   const handleGeneratePDF = async () => {
     try {
       setIsGenerating(true);
-      console.log('Starting PDF generation...');
       
+      if (!user?.id) {
+        toast.error('יש להתחבר למערכת');
+        router.push('/login');
+        return;
+      }
+
       // Validate customer details
       const formData = form.getValues();
       console.log('Form data:', formData);
@@ -155,19 +198,25 @@ export default function PriceOffersPage() {
       };
 
       console.log('Price offer data:', priceOffer);
-      const result = await generatePDF(priceOffer);
+
+      // First save the price offer to the database
+      const savedOffer = await savePriceOffer(priceOffer, user.id);
+      console.log('Saved offer:', savedOffer);
+
+      // Then generate the PDF
+      const result = await generatePDF(priceOffer, user.id);
       console.log('PDF generation result:', result);
 
-      if (result) {
+      if (result?.url) {
+        window.open(result.url, '_blank');
         toast.success('הצעת המחיר נוצרה בהצלחה');
-        // Optionally navigate back after successful generation
-        setTimeout(() => router.push('/dashboard'), 1500);
+        router.push('/dashboard');
       } else {
-        throw new Error('PDF generation failed');
+        throw new Error('Failed to generate PDF');
       }
     } catch (error) {
-      console.error('Error generating price offer:', error);
-      toast.error('אירעה שגיאה ביצירת הצעת המחיר');
+      console.error('Error:', error);
+      toast.error(error instanceof Error ? error.message : 'אירעה שגיאה ביצירת הצעת המחיר');
     } finally {
       setIsGenerating(false);
     }
@@ -200,27 +249,37 @@ export default function PriceOffersPage() {
                     {...form.register('customer.name')}
                     placeholder="שם מלא"
                     className="text-right"
+                    id="customer-name"
+                    autoComplete="name"
                   />
                   <Input
                     {...form.register('customer.email')}
                     placeholder="אימייל"
                     type="email"
                     className="text-right"
+                    id="customer-email"
+                    autoComplete="email"
                   />
                   <Input
                     {...form.register('customer.phone')}
                     placeholder="טלפון"
                     className="text-right"
+                    id="customer-phone"
+                    autoComplete="tel"
                   />
                   <Input
                     {...form.register('customer.company')}
                     placeholder="חברה (אופציונלי)"
                     className="text-right"
+                    id="customer-company"
+                    autoComplete="organization"
                   />
                   <Input
                     {...form.register('customer.address')}
                     placeholder="כתובת"
                     className="text-right md:col-span-2"
+                    id="customer-address"
+                    autoComplete="street-address"
                   />
                 </div>
               </div>
@@ -253,6 +312,7 @@ export default function PriceOffersPage() {
                             {...form.register(`items.${index}.description`)}
                             placeholder="תיאור"
                             className="text-right"
+                            id={`item-description-${index}`}
                           />
                         </div>
                         <div className="md:col-span-2">
@@ -263,6 +323,7 @@ export default function PriceOffersPage() {
                             {...form.register(`items.${index}.quantity`)}
                             placeholder="כמות"
                             className="text-right"
+                            id={`item-quantity-${index}`}
                             onChange={(e) => updateItemTotal(index, 'quantity', Math.max(0, Number(e.target.value)))}
                           />
                         </div>
@@ -274,6 +335,7 @@ export default function PriceOffersPage() {
                             {...form.register(`items.${index}.unitPrice`)}
                             placeholder="מחיר ליחידה"
                             className="text-right"
+                            id={`item-price-${index}`}
                             onChange={(e) => updateItemTotal(index, 'unitPrice', Math.max(0, Number(e.target.value)))}
                           />
                         </div>
@@ -329,11 +391,13 @@ export default function PriceOffersPage() {
                     {...form.register('validUntil')}
                     type="date"
                     className="text-right"
+                    id="valid-until"
                   />
                   <Textarea
                     {...form.register('notes')}
                     placeholder="הערות"
                     className="text-right"
+                    id="notes"
                   />
                 </div>
               </div>

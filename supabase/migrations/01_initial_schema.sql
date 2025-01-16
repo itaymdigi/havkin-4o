@@ -13,6 +13,7 @@ CREATE TABLE profiles (
 -- Create companies table
 CREATE TABLE companies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     industry TEXT,
     website TEXT,
@@ -25,6 +26,7 @@ CREATE TABLE companies (
 -- Create contacts table
 CREATE TABLE contacts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     company_id UUID REFERENCES companies(id) ON DELETE SET NULL,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,

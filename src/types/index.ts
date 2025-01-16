@@ -1,5 +1,6 @@
 export interface Contact {
   id: string
+  user_id: string
   company_id: string | null
   first_name: string
   last_name: string
@@ -14,6 +15,7 @@ export interface Contact {
 
 export interface Company {
   id: string
+  user_id: string
   name: string
   industry: string | null
   website: string | null

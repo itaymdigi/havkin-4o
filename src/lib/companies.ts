@@ -16,9 +16,15 @@ export async function getCompanies() {
 }
 
 export async function createCompany(company: Omit<Company, "id" | "created_at" | "updated_at">) {
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    throw new Error("User must be authenticated to create companies")
+  }
+
   const { data, error } = await supabase
     .from("companies")
-    .insert([company])
+    .insert([{ ...company, user_id: user.id }])
     .select()
 
   if (error) {
