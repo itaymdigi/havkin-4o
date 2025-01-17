@@ -34,10 +34,6 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# Dockerfiles
-Dockerfile*
-docker-compose.yml
-
 #NodesModles
 .next
 node_modules
