@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Users, Building2, FileText, Calendar, ArrowUpRight } from "lucide-react"
-import { createServerClient } from "@/lib/supabase-server"
+import { createServerSupabaseClient } from "@/lib/supabase-server"
 import { formatDateTime, formatCurrency } from "@/lib/utils"
 import { cookies } from "next/headers"
 import type { CalendarEvent } from "@/types"
@@ -28,8 +28,7 @@ export const dynamic = 'force-dynamic'
 
 async function getDashboardData() {
   try {
-    const cookieStore = cookies()
-    const supabase = await createServerClient(cookieStore)
+    const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) throw new Error("User not authenticated")

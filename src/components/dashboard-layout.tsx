@@ -1,6 +1,7 @@
 "use client"
 
 import { SidebarNav } from "./sidebar-nav"
+import { NotificationsDropdown } from "./notifications/notifications-dropdown"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,8 +10,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="hidden md:flex md:flex-shrink-0">
         <div className="flex flex-col w-64 border-r border-gray-200 bg-white">
           <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
-            <div className="flex items-center flex-shrink-0 px-4">
+            <div className="flex items-center justify-between flex-shrink-0 px-4">
               <h1 className="text-xl font-semibold">Business Manager</h1>
+              <NotificationsDropdown />
             </div>
             <div className="mt-5 flex-grow flex flex-col">
               <SidebarNav />
