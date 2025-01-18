@@ -10,7 +10,7 @@ import { he } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { MapView } from '@/components/map-view';
 
 interface EventDetails {
   id: string;
@@ -33,13 +34,9 @@ interface EventDetails {
   user_id: string;
 }
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function EventDetailsPage({ params }: PageProps) {
+export default function EventDetailsPage() {
+  const params = useParams();
+  const id = params?.id as string;
   const router = useRouter();
   const [event, setEvent] = useState<EventDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +46,6 @@ export default function EventDetailsPage({ params }: PageProps) {
     const fetchEventDetails = async () => {
       try {
         setIsLoading(true);
-        // First verify user is authenticated
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError || !user) {
@@ -61,7 +57,7 @@ export default function EventDetailsPage({ params }: PageProps) {
         const { data, error } = await supabase
           .from('calendar_events')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', id)
           .eq('user_id', user.id)
           .single();
 
@@ -85,10 +81,8 @@ export default function EventDetailsPage({ params }: PageProps) {
       }
     };
 
-    if (params.id) {
-      fetchEventDetails();
-    }
-  }, [params.id, router]);
+    fetchEventDetails();
+  }, [id, router]);
 
   const handleDelete = async () => {
     try {
@@ -102,7 +96,7 @@ export default function EventDetailsPage({ params }: PageProps) {
       const { error } = await supabase
         .from('calendar_events')
         .delete()
-        .eq('id', params.id)
+        .eq('id', id)
         .eq('user_id', user.id);
 
       if (error) throw error;
@@ -118,13 +112,10 @@ export default function EventDetailsPage({ params }: PageProps) {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="container mx-auto p-6">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="space-y-4">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            </div>
+        <div className="container py-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-32 bg-gray-200 rounded"></div>
           </div>
         </div>
       </DashboardLayout>
@@ -134,11 +125,11 @@ export default function EventDetailsPage({ params }: PageProps) {
   if (!event) {
     return (
       <DashboardLayout>
-        <div className="container mx-auto p-6">
+        <div className="container py-6">
           <div className="text-center">
             <h2 className="text-xl font-semibold">האירוע לא נמצא</h2>
+            <p className="mt-2 text-gray-600">האירוע המבוקש אינו קיים או שאין לך הרשאות לצפות בו</p>
             <Button
-              variant="link"
               onClick={() => router.push('/calendar')}
               className="mt-4"
             >
@@ -152,26 +143,30 @@ export default function EventDetailsPage({ params }: PageProps) {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto p-6" dir="rtl">
-        <div className="flex justify-between items-center mb-6">
-          <PageHeader title={event.title} backUrl="/calendar" />
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => router.push(`/calendar/${params.id}/edit`)}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="destructive"
-              size="icon"
-              onClick={() => setIsDeleteDialogOpen(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+      <div className="container py-6 space-y-6">
+        <PageHeader
+          title={event.title}
+          actions={
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/calendar/edit/${event.id}`)}
+              >
+                <Pencil className="h-4 w-4 ml-2" />
+                ערוך
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setIsDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 ml-2" />
+                מחק
+              </Button>
+            </div>
+          }
+        />
 
         <Card>
           <CardHeader>
@@ -188,9 +183,10 @@ export default function EventDetailsPage({ params }: PageProps) {
                 <p>{format(new Date(event.end_time), 'dd/MM/yyyy HH:mm', { locale: he })}</p>
               </div>
               {event.location && (
-                <div>
+                <div className="col-span-2">
                   <h3 className="font-semibold mb-2">מיקום</h3>
-                  <p>{event.location}</p>
+                  <p className="mb-4">{event.location}</p>
+                  <MapView address={event.location} className="w-full" />
                 </div>
               )}
               {event.description && (

@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { format, parse } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { LocationInput } from '@/components/location-input';
 
 const eventSchema = z.object({
   title: z.string().min(1, 'כותרת האירוע נדרשת'),
@@ -148,7 +149,11 @@ export function NewEventForm({ onSubmit, onCancel, initialDate }: NewEventFormPr
             <FormItem>
               <FormLabel>מיקום</FormLabel>
               <FormControl>
-                <Input placeholder="הכנס מיקום (אופציונלי)" {...field} />
+                <LocationInput 
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  placeholder="הכנס מיקום (אופציונלי)"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
