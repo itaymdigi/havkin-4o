@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import { useEffect, useState, useMemo } from 'react';
+import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
 import { Loader2, MapPin } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -26,23 +26,43 @@ const defaultCenter = {
   lng: 35.2137
 };
 
+const mapOptions = {
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: false,
+  language: 'he',
+};
+
 export function MapView({ address, className }: MapViewProps) {
   const [coordinates, setCoordinates] = useState<GeocodingResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    language: 'he',
+    region: 'IL',
+  });
+
+  // Memoize the map instance
+  const map = useMemo(() => (
+    coordinates ? (
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={coordinates}
+        zoom={15}
+        options={mapOptions}
+      >
+        <Marker position={coordinates} />
+      </GoogleMap>
+    ) : null
+  ), [coordinates]);
 
   useEffect(() => {
     const geocodeAddress = async () => {
       if (!address) {
         setError('לא סופקה כתובת');
-        setIsLoading(false);
-        return;
-      }
-
-      if (!apiKey) {
-        console.error('Google Maps API key is missing');
-        setError('נדרש מפתח Google Maps API');
         setIsLoading(false);
         return;
       }
@@ -78,9 +98,20 @@ export function MapView({ address, className }: MapViewProps) {
     };
 
     geocodeAddress();
-  }, [address, apiKey]);
+  }, [address]);
 
-  if (isLoading) {
+  if (loadError) {
+    return (
+      <Alert variant="destructive" className={className}>
+        <MapPin className="h-4 w-4" />
+        <AlertDescription>
+          שגיאה בטעינת המפה
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!isLoaded || isLoading) {
     return (
       <div className={`flex items-center justify-center bg-gray-100 rounded-lg ${className}`} style={containerStyle}>
         <div className="flex flex-col items-center gap-2">
@@ -102,22 +133,5 @@ export function MapView({ address, className }: MapViewProps) {
     );
   }
 
-  return (
-    <LoadScript googleMapsApiKey={apiKey}>
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={coordinates}
-        zoom={15}
-        options={{
-          zoomControl: true,
-          streetViewControl: false,
-          mapTypeControl: false,
-          fullscreenControl: false,
-          language: 'he',
-        }}
-      >
-        <Marker position={coordinates} />
-      </GoogleMap>
-    </LoadScript>
-  );
+  return map;
 } 

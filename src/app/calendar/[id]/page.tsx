@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, X } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   AlertDialog,
@@ -103,10 +103,15 @@ export default function EventDetailsPage() {
 
       toast.success('האירוע נמחק בהצלחה');
       router.push('/calendar');
+      router.refresh();
     } catch (error) {
       console.error('Error deleting event:', error);
       toast.error('אירעה שגיאה במחיקת האירוע');
     }
+  };
+
+  const handleClose = () => {
+    router.push('/calendar');
   };
 
   if (isLoading) {
@@ -130,7 +135,7 @@ export default function EventDetailsPage() {
             <h2 className="text-xl font-semibold">האירוע לא נמצא</h2>
             <p className="mt-2 text-gray-600">האירוע המבוקש אינו קיים או שאין לך הרשאות לצפות בו</p>
             <Button
-              onClick={() => router.push('/calendar')}
+              onClick={handleClose}
               className="mt-4"
             >
               חזור ללוח השנה
@@ -144,29 +149,38 @@ export default function EventDetailsPage() {
   return (
     <DashboardLayout>
       <div className="container py-6 space-y-6">
-        <PageHeader
-          title={event.title}
-          actions={
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push(`/calendar/edit/${event.id}`)}
-              >
-                <Pencil className="h-4 w-4 ml-2" />
-                ערוך
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setIsDeleteDialogOpen(true)}
-              >
-                <Trash2 className="h-4 w-4 ml-2" />
-                מחק
-              </Button>
-            </div>
-          }
-        />
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h1 className="text-2xl font-semibold">{event.title}</h1>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClose}
+              className="flex items-center gap-2"
+            >
+              <X className="h-4 w-4" />
+              סגור
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/calendar/edit/${event.id}`)}
+              className="flex items-center gap-2"
+            >
+              <Pencil className="h-4 w-4" />
+              ערוך
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              מחק
+            </Button>
+          </div>
+        </div>
 
         <Card>
           <CardHeader>
@@ -207,9 +221,10 @@ export default function EventDetailsPage() {
                 פעולה זו היא בלתי הפיכה. האירוע יימחק לצמיתות.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="gap-2">
               <AlertDialogCancel>ביטול</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground flex items-center gap-2">
+                <Trash2 className="h-4 w-4" />
                 מחק
               </AlertDialogAction>
             </AlertDialogFooter>

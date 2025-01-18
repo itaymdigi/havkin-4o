@@ -26,9 +26,10 @@ interface NewEventFormProps {
   onSubmit: (data: EventFormValues) => Promise<void>;
   onCancel: () => void;
   initialDate?: Date;
+  initialValues?: EventFormValues;
 }
 
-export function NewEventForm({ onSubmit, onCancel, initialDate }: NewEventFormProps) {
+export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }: NewEventFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Format initial dates
@@ -49,7 +50,7 @@ export function NewEventForm({ onSubmit, onCancel, initialDate }: NewEventFormPr
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
-    defaultValues: {
+    defaultValues: initialValues || {
       title: '',
       description: '',
       location: '',
@@ -193,7 +194,7 @@ export function NewEventForm({ onSubmit, onCancel, initialDate }: NewEventFormPr
                 שומר...
               </>
             ) : (
-              'צור אירוע'
+              initialValues ? 'עדכן אירוע' : 'צור אירוע'
             )}
           </Button>
         </div>

@@ -1,58 +1,59 @@
 import { NextResponse } from 'next/server';
 
+// Cache for geocoding results (lasts for 24 hours)
+const geocodeCache = new Map<string, { location: { lat: number; lng: number }; timestamp: number }>();
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const address = searchParams.get('address');
-
-  if (!address) {
-    return NextResponse.json({ error: 'Address is required' }, { status: 400 });
-  }
-
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-  
-  if (!apiKey) {
-    console.error('Server-side Google Maps API key is missing');
-    return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
-  }
-
   try {
-    console.log('Geocoding address:', address);
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-      address
-    )}&key=${apiKey}&language=he&region=il`;
+    const { searchParams } = new URL(request.url);
+    const address = searchParams.get('address');
 
+    if (!address) {
+      return NextResponse.json({ error: 'כתובת לא סופקה' }, { status: 400 });
+    }
+
+    // Check cache first
+    const cachedResult = geocodeCache.get(address);
+    if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_DURATION) {
+      return NextResponse.json({ location: cachedResult.location });
+    }
+
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      console.error('Server-side Google Maps API key is missing');
+      return NextResponse.json({ error: 'שגיאת הגדרות שרת' }, { status: 500 });
+    }
+
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&language=he&region=IL`;
+    
+    console.log('Geocoding address:', address);
     const response = await fetch(url);
     const data = await response.json();
-
+    
     console.log('Geocoding API response status:', data.status);
-    if (data.error_message) {
-      console.error('Geocoding API error:', data.error_message);
-    }
 
-    if (data.status === 'REQUEST_DENIED') {
-      return NextResponse.json({ 
-        error: 'אין הרשאה להשתמש ב-Google Maps API. סיבה: ' + data.error_message 
-      }, { status: 403 });
-    }
+    if (data.status === 'OK' && data.results && data.results[0]) {
+      const location = {
+        lat: data.results[0].geometry.location.lat,
+        lng: data.results[0].geometry.location.lng,
+      };
 
-    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      return NextResponse.json({ 
-        error: 'שגיאה בשירות המפות: ' + data.status 
-      }, { status: 500 });
-    }
+      // Cache the result
+      geocodeCache.set(address, { location, timestamp: Date.now() });
 
-    if (data.status === 'ZERO_RESULTS') {
-      return NextResponse.json({ error: 'לא נמצאה כתובת תואמת' }, { status: 404 });
+      return NextResponse.json({ location });
+    } else if (data.status === 'ZERO_RESULTS') {
+      return NextResponse.json({ error: 'לא נמצאו תוצאות לכתובת זו' }, { status: 404 });
+    } else if (data.status === 'REQUEST_DENIED') {
+      console.error('Geocoding request denied:', data.error_message);
+      return NextResponse.json({ error: 'הבקשה נדחתה על ידי השרת' }, { status: 403 });
+    } else {
+      console.error('Geocoding error:', data);
+      return NextResponse.json({ error: 'שגיאה בתהליך החיפוש' }, { status: 500 });
     }
-
-    return NextResponse.json({
-      location: data.results[0].geometry.location,
-      formatted_address: data.results[0].formatted_address,
-    });
   } catch (error) {
-    console.error('Error geocoding address:', error);
-    return NextResponse.json({ 
-      error: 'שגיאה בתקשורת עם שירות המפות' 
-    }, { status: 500 });
+    console.error('Geocoding error:', error);
+    return NextResponse.json({ error: 'שגיאת שרת' }, { status: 500 });
   }
 } 
