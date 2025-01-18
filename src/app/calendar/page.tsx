@@ -18,6 +18,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { createCalendarEvent } from '@/lib/calendar-events';
 import { NewEventForm, type EventFormValues } from './components/new-event-form';
+import { DashboardLayout } from "@/components/dashboard-layout";
 
 // Setup the localizer for react-big-calendar
 const locales = {
@@ -121,48 +122,50 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="container mx-auto p-6" dir="rtl">
-      <div className="flex justify-between items-center mb-6">
-        <PageHeader title="לוח שנה" />
-        <Button onClick={() => setIsNewEventDialogOpen(true)}>
-          <Plus className="h-4 w-4 ml-2" />
-          אירוע חדש
-        </Button>
+    <DashboardLayout>
+      <div className="container mx-auto p-6" dir="rtl">
+        <div className="flex justify-between items-center mb-6">
+          <PageHeader title="לוח שנה" />
+          <Button onClick={() => setIsNewEventDialogOpen(true)}>
+            <Plus className="h-4 w-4 ml-2" />
+            אירוע חדש
+          </Button>
+        </div>
+
+        <Card className="p-6">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-[600px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          ) : error ? (
+            <div className="flex justify-center items-center h-[600px] text-red-500">
+              {error}
+            </div>
+          ) : (
+            <Calendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: 600 }}
+              messages={messages}
+              culture="he"
+              rtl={true}
+              onSelectEvent={(event) => router.push(`/calendar/${event.id}`)}
+              views={['month', 'week', 'day', 'agenda']}
+            />
+          )}
+        </Card>
+
+        <Dialog open={isNewEventDialogOpen} onOpenChange={setIsNewEventDialogOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>אירוע חדש</DialogTitle>
+            </DialogHeader>
+            <NewEventForm onSubmit={handleCreateEvent} onCancel={() => setIsNewEventDialogOpen(false)} />
+          </DialogContent>
+        </Dialog>
       </div>
-
-      <Card className="p-6">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-[600px]">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          </div>
-        ) : error ? (
-          <div className="flex justify-center items-center h-[600px] text-red-500">
-            {error}
-          </div>
-        ) : (
-          <Calendar
-            localizer={localizer}
-            events={events}
-            startAccessor="start"
-            endAccessor="end"
-            style={{ height: 600 }}
-            messages={messages}
-            culture="he"
-            rtl={true}
-            onSelectEvent={(event) => router.push(`/calendar/${event.id}`)}
-            views={['month', 'week', 'day', 'agenda']}
-          />
-        )}
-      </Card>
-
-      <Dialog open={isNewEventDialogOpen} onOpenChange={setIsNewEventDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>אירוע חדש</DialogTitle>
-          </DialogHeader>
-          <NewEventForm onSubmit={handleCreateEvent} onCancel={() => setIsNewEventDialogOpen(false)} />
-        </DialogContent>
-      </Dialog>
-    </div>
+    </DashboardLayout>
   );
 } 
