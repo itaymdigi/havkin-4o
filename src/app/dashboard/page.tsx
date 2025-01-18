@@ -8,7 +8,6 @@ import {
 import { Users, Building2, FileText, Calendar, ArrowUpRight } from "lucide-react"
 import { createServerSupabaseClient } from "@/lib/supabase-server"
 import { formatDateTime, formatCurrency } from "@/lib/utils"
-import { cookies } from "next/headers"
 import type { CalendarEvent } from "@/types"
 import { BarChart } from "@/components/charts/bar-chart"
 import { LineChart } from "@/components/charts/line-chart"
@@ -26,6 +25,21 @@ export const metadata = {
 // Add dynamic configuration
 export const dynamic = 'force-dynamic'
 
+interface PriceOfferItem {
+  quantity: number;
+  unit_price: number;
+  currency: 'USD' | 'ILS';
+}
+
+interface SupabasePriceOffer {
+  created_at: string;
+  price_offer_items: PriceOfferItem[];
+}
+
+interface MonthlyPriceOffer {
+  price_offer_items: PriceOfferItem[];
+}
+
 async function getDashboardData() {
   try {
     const supabase = await createServerSupabaseClient()
@@ -36,7 +50,6 @@ async function getDashboardData() {
     // Get date ranges
     const now = new Date()
     const currentYear = now.getFullYear()
-    const lastYear = currentYear - 1
     
     const startCurrentYear = startOfYear(now)
     const endCurrentYear = endOfYear(now)
@@ -133,42 +146,52 @@ async function getDashboardData() {
     if (totalOffersError) console.error("Error fetching total offers:", totalOffersError)
 
     // Calculate monthly data for both years
-    const getMonthlyData = (offers: any[]) => {
-      const monthlyTotals = Array(12).fill(0)
+    const getMonthlyData = (offers: SupabasePriceOffer[] | null) => {
+      const monthlyTotals = Array(12).fill(0);
       offers?.forEach(offer => {
-        const month = new Date(offer.created_at).getMonth()
+        const month = new Date(offer.created_at).getMonth();
         // Calculate total from items
-        const offerTotal = offer.price_offer_items?.reduce((sum: number, item: any) => {
+        const offerTotal = offer.price_offer_items?.reduce((sum: number, item: PriceOfferItem) => {
           const amount = item.currency === 'USD' ? 
             (item.quantity * item.unit_price * 3.7) : // Convert USD to ILS
-            (item.quantity * item.unit_price)
-          return sum + amount
-        }, 0) || 0
-        monthlyTotals[month] += offerTotal
-      })
-      return monthlyTotals
-    }
+            (item.quantity * item.unit_price);
+          return sum + amount;
+        }, 0) || 0;
+        monthlyTotals[month] += offerTotal;
+      });
+      return monthlyTotals;
+    };
 
-    const currentYearMonthly = getMonthlyData(currentYearOffers || [])
-    const lastYearMonthly = getMonthlyData(lastYearOffers || [])
-
-    // Calculate totals
-    const calculateTotal = (offers: any[]) => {
+    const calculateMonthlyTotal = (offers: MonthlyPriceOffer[] | null) => {
       return offers?.reduce((sum, offer) => {
-        const offerTotal = offer.price_offer_items?.reduce((itemSum: number, item: any) => {
+        const offerTotal = offer.price_offer_items?.reduce((itemSum: number, item: PriceOfferItem) => {
           const amount = item.currency === 'USD' ? 
             (item.quantity * item.unit_price * 3.7) : // Convert USD to ILS
-            (item.quantity * item.unit_price)
-          return itemSum + amount
-        }, 0) || 0
-        return sum + offerTotal
-      }, 0) || 0
-    }
+            (item.quantity * item.unit_price);
+          return itemSum + amount;
+        }, 0) || 0;
+        return sum + offerTotal;
+      }, 0) || 0;
+    };
 
-    const currentYearTotal = calculateTotal(currentYearOffers || [])
-    const lastYearTotal = calculateTotal(lastYearOffers || [])
-    const currentMonthTotal = calculateTotal(currentMonthOffers || [])
-    const lastMonthTotal = calculateTotal(lastMonthOffers || [])
+    const calculateTotal = (offers: SupabasePriceOffer[] | null) => {
+      return offers?.reduce((sum, offer) => {
+        const offerTotal = offer.price_offer_items?.reduce((itemSum: number, item: PriceOfferItem) => {
+          const amount = item.currency === 'USD' ? 
+            (item.quantity * item.unit_price * 3.7) : // Convert USD to ILS
+            (item.quantity * item.unit_price);
+          return itemSum + amount;
+        }, 0) || 0;
+        return sum + offerTotal;
+      }, 0) || 0;
+    };
+
+    const currentYearMonthly = getMonthlyData(currentYearOffers);
+    const lastYearMonthly = getMonthlyData(lastYearOffers);
+    const currentMonthTotal = calculateMonthlyTotal(currentMonthOffers);
+    const lastMonthTotal = calculateMonthlyTotal(lastMonthOffers);
+    const currentYearTotal = calculateTotal(currentYearOffers);
+    const lastYearTotal = calculateTotal(lastYearOffers);
 
     // Calculate year-over-year and month-over-month changes
     const yearChange = lastYearTotal ? ((currentYearTotal - lastYearTotal) / lastYearTotal) * 100 : 0

@@ -1,6 +1,6 @@
 "use client"
 
-import { forwardRef, useImperativeHandle, useEffect, useState } from "react"
+import { forwardRef, useImperativeHandle, useEffect, useState, useCallback } from "react"
 import { FileText, Trash2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -27,19 +27,12 @@ export const FilesList = forwardRef<FilesListRef>((props, ref) => {
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error("User not authenticated")
-
-      const { data, error } = await supabase
-        .from('files')
-        .select('*')
-        .eq('uploaded_by', user.id)
-        .order('created_at', { ascending: false })
-
+      setLoading(true)
+      const { data, error } = await supabase.storage.from('files').list()
       if (error) throw error
-      setFiles(data)
+      setFiles(data || [])
     } catch (error) {
       console.error('Error fetching files:', error)
       toast({
@@ -50,7 +43,7 @@ export const FilesList = forwardRef<FilesListRef>((props, ref) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
 
   const handleDownload = async (file: File) => {
     try {
@@ -115,7 +108,7 @@ export const FilesList = forwardRef<FilesListRef>((props, ref) => {
 
   useEffect(() => {
     fetchFiles()
-  }, [])
+  }, [fetchFiles])
 
   useImperativeHandle(ref, () => ({
     fetchFiles

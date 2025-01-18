@@ -115,7 +115,7 @@ export default function CalendarPage() {
       const startDate = parse(data.start_time, 'dd/MM/yyyy HH:mm', new Date());
       const endDate = parse(data.end_time, 'dd/MM/yyyy HH:mm', new Date());
 
-      const newEvent = await createCalendarEvent({
+      await createCalendarEvent({
         title: data.title,
         description: data.description || '',
         location: data.location || '',

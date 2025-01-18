@@ -2,19 +2,16 @@
 
 import { useState } from "react"
 import { Upload, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/lib/supabase"
-import { Progress } from "@/components/ui/progress"
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/supabase'
 
 interface FileUploaderProps {
   onUploadSuccess: () => void;
 }
 
 interface FileData {
+  id: string;
   name: string;
   file_path: string;
   file_type: string;
@@ -30,16 +27,10 @@ interface FileData {
   updated_at: string | null;
 }
 
-interface UploadProgressEvent {
-  loaded: number;
-  total: number;
-}
-
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
 
 export function FileUploader({ onUploadSuccess }: FileUploaderProps): JSX.Element {
   const [uploading, setUploading] = useState<boolean>(false)
-  const [uploadProgress, setUploadProgress] = useState<number>(0)
   const { toast } = useToast()
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
@@ -52,7 +43,6 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps): JSX.Elemen
       }
 
       setUploading(true)
-      setUploadProgress(0)
 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("User not authenticated")
@@ -63,16 +53,12 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps): JSX.Elemen
       const fileName = `${timestamp}_${safeFileName}`
       const folderPath = `${user.id}/${fileName}`
 
-      // Upload file to Supabase Storage with progress tracking
+      // Upload file to Supabase Storage
       const { data: storageData, error: storageError } = await supabase.storage
         .from('files')
         .upload(folderPath, file, {
           cacheControl: '3600',
-          upsert: true,
-          onUploadProgress: (progress: UploadProgressEvent) => {
-            const percent = (progress.loaded / progress.total) * 100
-            setUploadProgress(Math.min(percent, 100))
-          },
+          upsert: true
         })
 
       if (storageError) {
@@ -90,7 +76,7 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps): JSX.Elemen
         .getPublicUrl(storageData.path)
 
       const now = new Date().toISOString()
-      const fileData: FileData = {
+      const fileData: Omit<FileData, 'id'> = {
         name: file.name,
         file_path: storageData.path,
         file_type: file.type || 'application/octet-stream',
@@ -135,7 +121,6 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps): JSX.Elemen
       })
     } finally {
       setUploading(false)
-      setUploadProgress(0)
     }
   }
 
@@ -149,15 +134,9 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps): JSX.Elemen
           }`}
         >
           {uploading ? (
-            <div className="flex flex-col items-center justify-center pt-5 pb-6 w-full max-w-xs">
+            <div className="flex flex-col items-center justify-center pt-5 pb-6">
               <Loader2 className="w-8 h-8 mb-4 text-gray-500 animate-spin" />
-              <p className="mb-2 text-sm text-gray-500">Uploading...</p>
-              <div className="w-full">
-                <Progress value={uploadProgress} className="h-1" />
-                <p className="text-xs text-center mt-2 text-gray-500">
-                  {Math.round(uploadProgress)}%
-                </p>
-              </div>
+              <p className="text-sm text-gray-500">Uploading...</p>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center pt-5 pb-6">

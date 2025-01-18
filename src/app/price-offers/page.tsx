@@ -344,7 +344,7 @@ export default function PriceOffersPage() {
 
                   {items.length === 0 ? (
                     <div className="text-center py-4 text-gray-500">
-                      לא נוספו פריטים. לחץ על "הוסף פריט" כדי להתחיל.
+                      לא נוספו פריטים. לחץ על &quot;הוסף פריט&quot; כדי להתחיל.
                     </div>
                   ) : (
                     <>

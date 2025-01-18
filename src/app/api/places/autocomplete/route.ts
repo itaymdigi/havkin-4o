@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
 
+interface GooglePlacesPrediction {
+  place_id: string;
+  description: string;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const input = searchParams.get('input');
@@ -44,7 +49,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
-      predictions: (data.predictions || []).map((prediction: any) => ({
+      predictions: (data.predictions || []).map((prediction: GooglePlacesPrediction) => ({
         place_id: prediction.place_id,
         description: prediction.description,
       })),

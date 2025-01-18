@@ -8,7 +8,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { format, parse } from 'date-fns';
-import { he } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { LocationInput } from '@/components/location-input';
 
@@ -49,7 +48,7 @@ export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }:
   const parseInputToDate = (value: string) => {
     try {
       return parse(value, 'dd/MM/yyyy HH:mm', new Date());
-    } catch (error) {
+    } catch {
       return null;
     }
   };

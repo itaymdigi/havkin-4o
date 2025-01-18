@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -24,6 +24,7 @@ import {
 import { Trash2 } from "lucide-react"
 import { getEventReminders, createReminder, deleteReminder } from "@/lib/reminders"
 import type { Reminder } from "@/types"
+import { toast } from "react-hot-toast"
 
 const reminderSchema = z.object({
   remind_at: z.string().min(1, "Reminder time is required"),
@@ -53,16 +54,17 @@ export function ReminderForm({ eventId, eventStartTime }: ReminderFormProps) {
 
   useEffect(() => {
     loadReminders()
-  }, [eventId])
+  }, [eventId, loadReminders])
 
-  async function loadReminders() {
+  const loadReminders = useCallback(async () => {
     try {
       const data = await getEventReminders(eventId)
       setReminders(data)
     } catch (error) {
-      console.error("Failed to load reminders:", error)
+      console.error('Error loading reminders:', error)
+      toast.error('שגיאה בטעינת תזכורות')
     }
-  }
+  }, [eventId])
 
   async function onSubmit(data: ReminderFormValues) {
     try {
