@@ -257,6 +257,7 @@ export default function CalendarPage() {
               popup
               selectable
               onSelectSlot={(slotInfo) => {
+                setDate(slotInfo.start);
                 setIsNewEventDialogOpen(true);
               }}
             />

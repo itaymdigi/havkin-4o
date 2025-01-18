@@ -36,6 +36,12 @@ export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }:
   const now = initialDate || new Date();
   const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
 
+  // Set the time to the start of the hour for better UX
+  if (initialDate) {
+    now.setMinutes(0);
+    oneHourLater.setMinutes(0);
+  }
+
   const formatDateForInput = (date: Date) => {
     return format(date, 'dd/MM/yyyy HH:mm');
   };
