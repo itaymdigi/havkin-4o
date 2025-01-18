@@ -15,6 +15,17 @@ import { LineChart } from "@/components/charts/line-chart"
 import { startOfYear, endOfYear, format, subYears, startOfMonth, endOfMonth, subMonths } from "date-fns"
 
 // Server component to fetch dashboard data
+export const revalidate = 60 // Revalidate every 60 seconds
+
+// Add metadata export
+export const metadata = {
+  title: 'Dashboard',
+  description: 'View your business analytics and metrics',
+}
+
+// Add dynamic configuration
+export const dynamic = 'force-dynamic'
+
 async function getDashboardData() {
   try {
     const cookieStore = cookies()

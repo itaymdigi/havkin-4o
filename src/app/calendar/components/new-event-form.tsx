@@ -7,6 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { format, parse } from 'date-fns';
+import { he } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 const eventSchema = z.object({
   title: z.string().min(1, 'כותרת האירוע נדרשת'),
@@ -21,10 +24,27 @@ export type EventFormValues = z.infer<typeof eventSchema>;
 interface NewEventFormProps {
   onSubmit: (data: EventFormValues) => Promise<void>;
   onCancel: () => void;
+  initialDate?: Date;
 }
 
-export function NewEventForm({ onSubmit, onCancel }: NewEventFormProps) {
+export function NewEventForm({ onSubmit, onCancel, initialDate }: NewEventFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Format initial dates
+  const now = initialDate || new Date();
+  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+
+  const formatDateForInput = (date: Date) => {
+    return format(date, 'dd/MM/yyyy HH:mm');
+  };
+
+  const parseInputToDate = (value: string) => {
+    try {
+      return parse(value, 'dd/MM/yyyy HH:mm', new Date());
+    } catch (error) {
+      return null;
+    }
+  };
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
@@ -32,8 +52,8 @@ export function NewEventForm({ onSubmit, onCancel }: NewEventFormProps) {
       title: '',
       description: '',
       location: '',
-      start_time: new Date().toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
-      end_time: new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16), // 1 hour later
+      start_time: formatDateForInput(now),
+      end_time: formatDateForInput(oneHourLater),
     },
   });
 
@@ -67,11 +87,26 @@ export function NewEventForm({ onSubmit, onCancel }: NewEventFormProps) {
           <FormField
             control={form.control}
             name="start_time"
-            render={({ field }) => (
+            render={({ field: { onChange, value, ...field } }) => (
               <FormItem>
                 <FormLabel>מועד התחלה</FormLabel>
                 <FormControl>
-                  <Input type="datetime-local" {...field} />
+                  <Input 
+                    placeholder="DD/MM/YYYY HH:mm"
+                    value={value}
+                    onChange={(e) => {
+                      onChange(e.target.value);
+                      const newStartDate = parseInputToDate(e.target.value);
+                      if (newStartDate) {
+                        const currentEndDate = parseInputToDate(form.getValues('end_time'));
+                        if (currentEndDate && currentEndDate <= newStartDate) {
+                          const newEndDate = new Date(newStartDate.getTime() + 60 * 60 * 1000);
+                          form.setValue('end_time', formatDateForInput(newEndDate));
+                        }
+                      }
+                    }}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -81,11 +116,24 @@ export function NewEventForm({ onSubmit, onCancel }: NewEventFormProps) {
           <FormField
             control={form.control}
             name="end_time"
-            render={({ field }) => (
+            render={({ field: { onChange, value, ...field } }) => (
               <FormItem>
                 <FormLabel>מועד סיום</FormLabel>
                 <FormControl>
-                  <Input type="datetime-local" {...field} />
+                  <Input 
+                    placeholder="DD/MM/YYYY HH:mm"
+                    value={value}
+                    onChange={(e) => {
+                      const endDate = parseInputToDate(e.target.value);
+                      const startDate = parseInputToDate(form.getValues('start_time'));
+                      if (endDate && startDate && endDate <= startDate) {
+                        toast.error('מועד הסיום חייב להיות אחרי מועד ההתחלה');
+                        return;
+                      }
+                      onChange(e.target.value);
+                    }}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

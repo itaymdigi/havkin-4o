@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import format from 'date-fns/format';
 import parse from 'date-fns/parse';
 import startOfWeek from 'date-fns/startOfWeek';
@@ -10,11 +10,12 @@ import he from 'date-fns/locale/he';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import './styles.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { createCalendarEvent } from '@/lib/calendar-events';
 import { NewEventForm, type EventFormValues } from './components/new-event-form';
@@ -49,6 +50,8 @@ export default function CalendarPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isNewEventDialogOpen, setIsNewEventDialogOpen] = useState(false);
+  const [view, setView] = useState(Views.MONTH);
+  const [date, setDate] = useState(new Date());
 
   useEffect(() => {
     fetchEvents();
@@ -99,16 +102,25 @@ export default function CalendarPage() {
     time: 'שעה',
     event: 'אירוע',
     noEventsInRange: 'אין אירועים בטווח זה',
+    allDay: 'כל היום',
+    work_week: 'שבוע עבודה',
+    yesterday: 'אתמול',
+    tomorrow: 'מחר',
+    showMore: (total: number) => `עוד ${total}`,
   };
 
   const handleCreateEvent = async (data: EventFormValues) => {
     try {
+      // Parse the formatted dates back to ISO format for storage
+      const startDate = parse(data.start_time, 'dd/MM/yyyy HH:mm', new Date());
+      const endDate = parse(data.end_time, 'dd/MM/yyyy HH:mm', new Date());
+
       const newEvent = await createCalendarEvent({
         title: data.title,
         description: data.description || '',
         location: data.location || '',
-        start_time: new Date(data.start_time).toISOString(),
-        end_time: new Date(data.end_time).toISOString(),
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
       });
 
       // Refresh events list
@@ -119,6 +131,89 @@ export default function CalendarPage() {
       console.error('Error creating event:', error);
       toast.error('אירעה שגיאה ביצירת האירוע');
     }
+  };
+
+  // Custom event formats
+  const formats = {
+    dateFormat: 'dd',
+    monthHeaderFormat: (date: Date) => format(date, 'MMMM yyyy', { locale: he }),
+    dayHeaderFormat: (date: Date) => format(date, 'EEEE dd/MM/yyyy', { locale: he }),
+    dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
+      `${format(start, 'dd/MM/yyyy', { locale: he })} - ${format(end, 'dd/MM/yyyy', { locale: he })}`,
+    eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
+      `${format(start, 'HH:mm', { locale: he })} - ${format(end, 'HH:mm', { locale: he })}`,
+    timeGutterFormat: (date: Date) => format(date, 'HH:mm', { locale: he }),
+    agendaDateFormat: (date: Date) => format(date, 'dd/MM/yyyy', { locale: he }),
+    agendaTimeFormat: (date: Date) => format(date, 'HH:mm', { locale: he }),
+    agendaTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
+      `${format(start, 'HH:mm', { locale: he })} - ${format(end, 'HH:mm', { locale: he })}`,
+  };
+
+  // Custom components
+  const components = {
+    toolbar: (props: any) => (
+      <div className="flex justify-between items-center mb-4 p-2">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => props.onNavigate('PREV')}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => props.onNavigate('NEXT')}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => props.onNavigate('TODAY')}
+          >
+            {messages.today}
+          </Button>
+        </div>
+        <h2 className="text-xl font-semibold">
+          {format(props.date, 'MMMM yyyy', { locale: he })}
+        </h2>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => props.onView(Views.MONTH)}
+            className={view === Views.MONTH ? 'bg-primary text-primary-foreground' : ''}
+          >
+            {messages.month}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => props.onView(Views.WEEK)}
+            className={view === Views.WEEK ? 'bg-primary text-primary-foreground' : ''}
+          >
+            {messages.week}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => props.onView(Views.DAY)}
+            className={view === Views.DAY ? 'bg-primary text-primary-foreground' : ''}
+          >
+            {messages.day}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => props.onView(Views.AGENDA)}
+            className={view === Views.AGENDA ? 'bg-primary text-primary-foreground' : ''}
+          >
+            {messages.agenda}
+          </Button>
+        </div>
+      </div>
+    ),
   };
 
   return (
@@ -151,8 +246,19 @@ export default function CalendarPage() {
               messages={messages}
               culture="he"
               rtl={true}
+              formats={formats}
+              components={components}
+              view={view}
+              onView={setView}
+              date={date}
+              onNavigate={setDate}
               onSelectEvent={(event) => router.push(`/calendar/${event.id}`)}
-              views={['month', 'week', 'day', 'agenda']}
+              views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+              popup
+              selectable
+              onSelectSlot={(slotInfo) => {
+                setIsNewEventDialogOpen(true);
+              }}
             />
           )}
         </Card>
@@ -162,7 +268,11 @@ export default function CalendarPage() {
             <DialogHeader>
               <DialogTitle>אירוע חדש</DialogTitle>
             </DialogHeader>
-            <NewEventForm onSubmit={handleCreateEvent} onCancel={() => setIsNewEventDialogOpen(false)} />
+            <NewEventForm 
+              onSubmit={handleCreateEvent} 
+              onCancel={() => setIsNewEventDialogOpen(false)}
+              initialDate={date}
+            />
           </DialogContent>
         </Dialog>
       </div>
