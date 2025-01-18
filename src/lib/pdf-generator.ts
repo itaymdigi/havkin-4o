@@ -1,68 +1,7 @@
-import html2pdf from 'html2pdf.js';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 import { PriceOffer } from '@/types/price-offer';
 import { createBrowserClient } from '@supabase/ssr';
-
-const createPdfContent = (priceOffer: PriceOffer): string => {
-  const itemsHtml = priceOffer.items.map(item => `
-    <tr>
-      <td style="text-align: right;">${item.description}</td>
-      <td style="text-align: right;">${item.quantity}</td>
-      <td style="text-align: right;">${item.currency === 'USD' ? '$' : '₪'}${item.unitPrice.toFixed(2)}</td>
-      <td style="text-align: right;">${item.currency === 'USD' ? '$' : '₪'}${item.total.toFixed(2)}</td>
-    </tr>
-  `).join('');
-
-  return `
-    <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
-      <h1 style="text-align: center; color: #333;">הצעת מחיר</h1>
-      
-      <div style="margin-bottom: 20px;">
-        <p>מספר הצעה: ${priceOffer.id}</p>
-        <p>תאריך: ${new Date(priceOffer.date).toLocaleDateString('he-IL')}</p>
-        <p>בתוקף עד: ${new Date(priceOffer.validUntil).toLocaleDateString('he-IL')}</p>
-      </div>
-
-      <div style="margin-bottom: 30px;">
-        <h2 style="color: #444;">פרטי לקוח</h2>
-        <p>שם: ${priceOffer.customer.name}</p>
-        <p>חברה: ${priceOffer.customer.company || 'לא צוין'}</p>
-        <p>טלפון: ${priceOffer.customer.phone}</p>
-        <p>אימייל: ${priceOffer.customer.email}</p>
-        <p>כתובת: ${priceOffer.customer.address}</p>
-      </div>
-
-      <div style="margin-bottom: 30px;">
-        <h2 style="color: #444;">פריטים</h2>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-          <thead>
-            <tr style="background-color: #f4f4f4;">
-              <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">תיאור</th>
-              <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">כמות</th>
-              <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">מחיר ליחידה</th>
-              <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">סה"כ</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
-      </div>
-
-      <div style="margin-bottom: 20px; text-align: left;">
-        <p>סה"כ לפני מע"מ: ₪${priceOffer.subtotal.toFixed(2)}</p>
-        <p>מע"מ (18%): ₪${priceOffer.tax.toFixed(2)}</p>
-        <p style="font-weight: bold;">סה"כ כולל מע"מ: ₪${priceOffer.total.toFixed(2)}</p>
-      </div>
-
-      ${priceOffer.notes ? `
-        <div style="margin-top: 30px;">
-          <h2 style="color: #444;">הערות</h2>
-          <p>${priceOffer.notes}</p>
-        </div>
-      ` : ''}
-    </div>
-  `;
-};
 
 export async function generatePDF(priceOffer: PriceOffer, userId: string) {
   const supabase = createBrowserClient(
@@ -84,97 +23,142 @@ export async function generatePDF(priceOffer: PriceOffer, userId: string) {
 
     console.log('Starting PDF generation...');
     
-    // Create the HTML content
-    const content = createPdfContent(priceOffer);
+    // Create new PDF document
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      putOnlyUsedFonts: true
+    });
     
-    // Create a temporary container
-    const container = document.createElement('div');
-    container.innerHTML = content;
-    document.body.appendChild(container);
-
-    // PDF options
-    const options = {
-      margin: 10,
-      filename: `price-offer-${priceOffer.id}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2,
-        useCORS: true,
-        logging: true
+    // Set RTL mode and default styling
+    doc.setR2L(true);
+    doc.setFont("helvetica");
+    doc.setFontSize(12);
+    
+    // Add header
+    doc.setFontSize(24);
+    doc.text('הצעת מחיר', doc.internal.pageSize.width / 2, 20, { align: 'center' });
+    
+    // Add offer details
+    doc.setFontSize(12);
+    doc.text(`מספר הצעה: ${priceOffer.id}`, 190, 40, { align: 'right' });
+    doc.text(`תאריך: ${new Date(priceOffer.date).toLocaleDateString('he-IL')}`, 190, 50, { align: 'right' });
+    doc.text(`בתוקף עד: ${new Date(priceOffer.validUntil).toLocaleDateString('he-IL')}`, 190, 60, { align: 'right' });
+    
+    // Add customer details
+    doc.setFontSize(16);
+    doc.text('פרטי לקוח', 190, 80, { align: 'right' });
+    doc.setFontSize(12);
+    doc.text(`שם: ${priceOffer.customer.name}`, 190, 90, { align: 'right' });
+    doc.text(`חברה: ${priceOffer.customer.company || 'לא צוין'}`, 190, 100, { align: 'right' });
+    doc.text(`טלפון: ${priceOffer.customer.phone}`, 190, 110, { align: 'right' });
+    doc.text(`אימייל: ${priceOffer.customer.email}`, 190, 120, { align: 'right' });
+    doc.text(`כתובת: ${priceOffer.customer.address}`, 190, 130, { align: 'right' });
+    
+    // Add items table
+    const tableHeaders = [['תיאור', 'כמות', 'מחיר ליחידה', 'סה"כ']];
+    const tableData = priceOffer.items.map(item => [
+      item.description,
+      item.quantity.toString(),
+      `${item.currency === 'USD' ? '$' : '₪'}${item.unitPrice.toFixed(2)}`,
+      `${item.currency === 'USD' ? '$' : '₪'}${item.total.toFixed(2)}`
+    ]);
+    
+    (doc as any).autoTable({
+      head: tableHeaders,
+      body: tableData,
+      startY: 150,
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        halign: 'right',
+        fontSize: 10,
+        cellPadding: 5,
+        overflow: 'linebreak',
+        minCellHeight: 20
       },
-      jsPDF: { 
-        unit: 'mm', 
-        format: 'a4', 
-        orientation: 'portrait' as const
+      headStyles: {
+        fillColor: [240, 240, 240],
+        textColor: [0, 0, 0],
+        fontStyle: 'bold'
+      },
+      columnStyles: {
+        0: { cellWidth: 80 }, // Description
+        1: { cellWidth: 30 }, // Quantity
+        2: { cellWidth: 40 }, // Unit Price
+        3: { cellWidth: 40 }  // Total
       }
-    };
+    });
+    
+    // Add totals
+    const finalY = (doc as any).lastAutoTable.finalY + 20;
+    doc.text(`סה"כ לפני מע"מ: ₪${priceOffer.subtotal.toFixed(2)}`, 190, finalY, { align: 'right' });
+    doc.text(`מע"מ (18%): ₪${priceOffer.tax.toFixed(2)}`, 190, finalY + 10, { align: 'right' });
+    doc.text(`סה"כ כולל מע"מ: ₪${priceOffer.total.toFixed(2)}`, 190, finalY + 20, { align: 'right' });
+    
+    // Add notes if present
+    if (priceOffer.notes) {
+      doc.text('הערות:', 190, finalY + 40, { align: 'right' });
+      const splitNotes = doc.splitTextToSize(priceOffer.notes, 180);
+      doc.text(splitNotes, 190, finalY + 50, { align: 'right' });
+    }
+    
+    // Generate PDF blob
+    const pdfBlob = doc.output('blob');
+    console.log('PDF blob created, size:', pdfBlob.size);
 
-    try {
-      // Generate PDF as Blob
-      const pdfInstance = await html2pdf().from(container).set(options);
-      const pdfBlob = await new Promise<Blob>((resolve, reject) => {
-        pdfInstance.outputPdf('blob').then((result) => {
-          if (result instanceof Blob) {
-            resolve(result);
-          } else {
-            reject(new Error('Failed to generate PDF blob'));
-          }
-        }).catch(reject);
+    // Upload to Supabase
+    const fileName = `${userId}/price-offers/${priceOffer.id}/price-offer-${priceOffer.id}.pdf`;
+    console.log('Uploading PDF to:', fileName);
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(fileName, pdfBlob, {
+        contentType: 'application/pdf',
+        upsert: true,
+        cacheControl: '3600'
       });
 
-      document.body.removeChild(container);
-
-      // Update the file path to include userId for better organization
-      const fileName = `${userId}/price-offers/${priceOffer.id}/${options.filename}`;
-      
-      // Upload with retry logic
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(fileName, pdfBlob, {
-          contentType: 'application/pdf',
-          upsert: true,
-          cacheControl: '3600'
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw new Error(`Failed to upload PDF: ${uploadError.message}`);
-      }
-
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(fileName);
-
-      // Create a record in the files table
-      const { data: fileRecord, error: fileError } = await supabase
-        .from('files')
-        .insert({
-          name: options.filename,
-          file_path: fileName,
-          file_type: 'application/pdf',
-          size_bytes: pdfBlob.size,
-          uploaded_by: userId,
-          company_id: priceOffer.customer.company ? undefined : null
-        })
-        .select()
-        .single();
-
-      if (fileError) {
-        throw fileError;
-      }
-
-      return {
-        url: publicUrl,
-        fileId: fileRecord.id
-      };
-
-    } catch (error) {
-      if (document.body.contains(container)) {
-        document.body.removeChild(container);
-      }
-      throw error;
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error(`Failed to upload PDF: ${uploadError.message}`);
     }
+
+    console.log('PDF uploaded successfully');
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('documents')
+      .getPublicUrl(fileName);
+
+    console.log('Public URL generated:', publicUrl);
+
+    // Create file record
+    const { data: fileRecord, error: fileError } = await supabase
+      .from('files')
+      .insert({
+        name: `price-offer-${priceOffer.id}.pdf`,
+        file_path: fileName,
+        file_type: 'application/pdf',
+        size_bytes: pdfBlob.size,
+        uploaded_by: userId,
+        company_id: null
+      })
+      .select()
+      .single();
+
+    if (fileError) {
+      console.error('File record error:', fileError);
+      throw fileError;
+    }
+
+    console.log('File record created:', fileRecord);
+
+    return {
+      url: publicUrl,
+      fileId: fileRecord.id
+    };
 
   } catch (error) {
     console.error('PDF generation error:', error);

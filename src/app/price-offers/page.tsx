@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Form } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,31 +19,32 @@ import { Trash2, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { useUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import { generatePriceOfferPDF } from '@/lib/pdf-utils';
 
 // Validation schema
 const priceOfferSchema = z.object({
   customer: z.object({
-    name: z.string().min(2, 'Name is required'),
-    email: z.string().email('Invalid email address'),
-    phone: z.string().min(9, 'Phone number is required'),
-    address: z.string().min(5, 'Address is required'),
+    name: z.string().min(2, { message: 'נא להזין שם מלא' }),
+    email: z.string().email({ message: 'נא להזין כתובת אימייל תקינה' }),
+    phone: z.string().min(9, { message: 'נא להזין מספר טלפון תקין' }),
+    address: z.string().min(5, { message: 'נא להזין כתובת מלאה' }),
     company: z.string().optional(),
   }),
   items: z.array(z.object({
     id: z.string(),
-    description: z.string().min(1, 'Description is required'),
-    quantity: z.number().min(1, 'Quantity must be at least 1'),
-    unitPrice: z.number().min(0, 'Unit price must be positive'),
+    description: z.string().min(1, { message: 'נא להזין תיאור לפריט' }),
+    quantity: z.coerce.number().min(1, { message: 'כמות חייבת להיות לפחות 1' }),
+    unitPrice: z.coerce.number().min(0, { message: 'מחיר חייב להיות חיובי' }),
     total: z.number(),
     currency: z.enum(['USD', 'ILS']),
-  })).min(1, 'At least one item is required'),
-  notes: z.string().optional(),
+  })).optional().default([]),
+  notes: z.string().optional().default(''),
   validUntil: z.string(),
 });
 
 export default function PriceOffersPage() {
   const router = useRouter();
-  const { user, isLoading } = useUser();
+  const { user, loading: isLoading } = useUser();
   const [isGenerating, setIsGenerating] = useState(false);
   const [items, setItems] = useState<PriceOfferItem[]>([]);
   const [isClient, setIsClient] = useState(false);
@@ -85,7 +86,13 @@ export default function PriceOffersPage() {
 
   // Update form items when items state changes
   useEffect(() => {
-    form.setValue('items', items);
+    const formattedItems = items.map(item => ({
+      ...item,
+      quantity: Number(item.quantity),
+      unitPrice: Number(item.unitPrice),
+      total: Number(item.total),
+    }));
+    form.setValue('items', formattedItems, { shouldValidate: true });
   }, [items, form]);
 
   // Show loading state while checking auth
@@ -106,7 +113,7 @@ export default function PriceOffersPage() {
     if (value < 0) return;
     const newItems = [...items];
     newItems[index][field] = value;
-    newItems[index].total = newItems[index].quantity * newItems[index].unitPrice;
+    newItems[index].total = Number((newItems[index].quantity * newItems[index].unitPrice).toFixed(2));
     setItems(newItems);
   };
 
@@ -117,10 +124,6 @@ export default function PriceOffersPage() {
   };
 
   const deleteItem = (index: number) => {
-    if (items.length === 1) {
-      toast.error('חייב להיות לפחות פריט אחד');
-      return;
-    }
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
   };
@@ -138,89 +141,70 @@ export default function PriceOffersPage() {
     };
   };
 
-  const handleGeneratePDF = async () => {
+  // Add form submission handler
+  const onSubmit = form.handleSubmit(async (formData) => {
     try {
-      setIsGenerating(true);
-      
       if (!user?.id) {
         toast.error('יש להתחבר למערכת');
         router.push('/login');
         return;
       }
 
-      // Validate customer details
-      const formData = form.getValues();
-      console.log('Form data:', formData);
-
-      const customerValidation = z.object({
-        customer: z.object({
-          name: z.string().min(2, 'Name is required'),
-          email: z.string().email('Invalid email address'),
-          phone: z.string().min(9, 'Phone number is required'),
-          address: z.string().min(5, 'Address is required'),
-          company: z.string().optional(),
-        }),
-      }).safeParse(formData);
-
-      if (!customerValidation.success) {
-        console.log('Customer validation failed:', customerValidation.error);
-        toast.error('נא למלא את כל פרטי הלקוח');
-        return;
-      }
-
+      // Validate items array
       if (items.length === 0) {
-        console.log('No items found');
         toast.error('נא להוסיף לפחות פריט אחד');
         return;
       }
 
-      // Validate items
-      const invalidItems = items.some(item => !item.description || item.quantity <= 0 || item.unitPrice <= 0);
-      if (invalidItems) {
-        console.log('Invalid items found:', items);
-        toast.error('נא למלא את כל פרטי הפריטים');
-        return;
-      }
-
+      // Create the price offer data first
       const totals = calculateTotals();
-      console.log('Calculated totals:', totals);
-
       const priceOffer: PriceOffer = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         customer: formData.customer,
-        items: items,
+        items: items.map(item => ({
+          ...item,
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+          total: Number(item.total),
+        })),
         date: new Date().toISOString(),
-        validUntil: formData.validUntil || new Date().toISOString().split('T')[0],
-        notes: formData.notes,
+        validUntil: formData.validUntil,
+        notes: formData.notes || '',
         subtotal: totals.subtotal,
         tax: totals.tax,
         total: totals.total,
       };
 
-      console.log('Price offer data:', priceOffer);
+      setIsGenerating(true);
 
-      // First save the price offer to the database
-      const savedOffer = await savePriceOffer(priceOffer, user.id);
-      console.log('Saved offer:', savedOffer);
-
-      // Then generate the PDF
-      const result = await generatePDF(priceOffer, user.id);
-      console.log('PDF generation result:', result);
-
-      if (result?.url) {
-        window.open(result.url, '_blank');
-        toast.success('הצעת המחיר נוצרה בהצלחה');
-        router.push('/dashboard');
-      } else {
-        throw new Error('Failed to generate PDF');
+      try {
+        // First save the price offer to the database
+        await savePriceOffer(priceOffer, user.id);
+        toast.success('הצעת המחיר נשמרה בהצלחה');
+        
+        // Generate PDF using our new client-side function
+        const pdfUrl = generatePriceOfferPDF(priceOffer);
+        
+        // Open PDF in new tab
+        window.open(pdfUrl, '_blank');
+        toast.success('ה-PDF נוצר בהצלחה');
+        
+        // Small delay before redirect
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
+        
+      } catch (error) {
+        console.error('Error in save/generate process:', error);
+        toast.error(error instanceof Error ? error.message : 'אירעה שגיאה בשמירת הצעת המחיר');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Form submission error:', error);
       toast.error(error instanceof Error ? error.message : 'אירעה שגיאה ביצירת הצעת המחיר');
     } finally {
       setIsGenerating(false);
     }
-  };
+  });
 
   const addItem = () => {
     const newItem: PriceOfferItem = {
@@ -229,7 +213,7 @@ export default function PriceOffersPage() {
       quantity: 1,
       unitPrice: 0,
       total: 0,
-      currency: items[0]?.currency || 'ILS',
+      currency: 'ILS',
     };
     setItems([...items, newItem]);
   };
@@ -241,45 +225,109 @@ export default function PriceOffersPage() {
       <Card>
         <CardContent className="p-6">
           <Form {...form}>
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-6" onSubmit={onSubmit}>
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">פרטי לקוח</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    {...form.register('customer.name')}
-                    placeholder="שם מלא"
-                    className="text-right"
-                    id="customer-name"
-                    autoComplete="name"
+                  <FormField
+                    control={form.control}
+                    name="customer.name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>שם מלא</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="שם מלא"
+                            className="text-right"
+                            id="customer-name"
+                            autoComplete="name"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <Input
-                    {...form.register('customer.email')}
-                    placeholder="אימייל"
-                    type="email"
-                    className="text-right"
-                    id="customer-email"
-                    autoComplete="email"
+                  
+                  <FormField
+                    control={form.control}
+                    name="customer.email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>אימייל</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="אימייל"
+                            type="email"
+                            className="text-right"
+                            id="customer-email"
+                            autoComplete="email"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <Input
-                    {...form.register('customer.phone')}
-                    placeholder="טלפון"
-                    className="text-right"
-                    id="customer-phone"
-                    autoComplete="tel"
+                  
+                  <FormField
+                    control={form.control}
+                    name="customer.phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>טלפון</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="טלפון"
+                            className="text-right"
+                            id="customer-phone"
+                            autoComplete="tel"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <Input
-                    {...form.register('customer.company')}
-                    placeholder="חברה (אופציונלי)"
-                    className="text-right"
-                    id="customer-company"
-                    autoComplete="organization"
+                  
+                  <FormField
+                    control={form.control}
+                    name="customer.company"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>חברה (אופציונלי)</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="חברה (אופציונלי)"
+                            className="text-right"
+                            id="customer-company"
+                            autoComplete="organization"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <Input
-                    {...form.register('customer.address')}
-                    placeholder="כתובת"
-                    className="text-right md:col-span-2"
-                    id="customer-address"
-                    autoComplete="street-address"
+                  
+                  <FormField
+                    control={form.control}
+                    name="customer.address"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>כתובת</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="כתובת"
+                            className="text-right"
+                            id="customer-address"
+                            autoComplete="street-address"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
               </div>
@@ -299,7 +347,7 @@ export default function PriceOffersPage() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center font-semibold mb-2">
                       <div className="md:col-span-4">תיאור</div>
                       <div className="md:col-span-2">כמות</div>
-                      <div className="md:col-span-2">מחיר פריט</div>
+                      <div className="md:col-span-2">מחיר ליחידה</div>
                       <div className="md:col-span-2">מטבע</div>
                       <div className="md:col-span-1">סה"כ</div>
                       <div className="md:col-span-1"></div>
@@ -308,50 +356,118 @@ export default function PriceOffersPage() {
                     {items.map((item, index) => (
                       <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                         <div className="md:col-span-4">
-                          <Input
-                            {...form.register(`items.${index}.description`)}
-                            placeholder="תיאור"
-                            className="text-right"
-                            id={`item-description-${index}`}
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.description`}
+                            defaultValue=""
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    value={items[index].description}
+                                    onChange={(e) => {
+                                      field.onChange(e);
+                                      const newItems = [...items];
+                                      newItems[index].description = e.target.value;
+                                      setItems(newItems);
+                                    }}
+                                    placeholder="תיאור"
+                                    className="text-right"
+                                    id={`item-description-${index}`}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
                         </div>
                         <div className="md:col-span-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            step="1"
-                            {...form.register(`items.${index}.quantity`)}
-                            placeholder="כמות"
-                            className="text-right"
-                            id={`item-quantity-${index}`}
-                            onChange={(e) => updateItemTotal(index, 'quantity', Math.max(0, Number(e.target.value)))}
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.quantity`}
+                            defaultValue={1}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    value={field.value || 1}
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    placeholder="כמות"
+                                    className="text-right"
+                                    id={`item-quantity-${index}`}
+                                    onChange={(e) => {
+                                      const value = Math.max(0, Number(e.target.value));
+                                      field.onChange(value);
+                                      updateItemTotal(index, 'quantity', value);
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
                         </div>
                         <div className="md:col-span-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            {...form.register(`items.${index}.unitPrice`)}
-                            placeholder="מחיר ליחידה"
-                            className="text-right"
-                            id={`item-price-${index}`}
-                            onChange={(e) => updateItemTotal(index, 'unitPrice', Math.max(0, Number(e.target.value)))}
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.unitPrice`}
+                            defaultValue={0}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    value={field.value || 0}
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="מחיר ליחידה"
+                                    className="text-right"
+                                    id={`item-price-${index}`}
+                                    onChange={(e) => {
+                                      const value = Math.max(0, Number(e.target.value));
+                                      field.onChange(value);
+                                      updateItemTotal(index, 'unitPrice', value);
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
                         </div>
                         <div className="md:col-span-2">
-                          <Select
-                            value={item.currency}
-                            onValueChange={(value: 'USD' | 'ILS') => updateItemCurrency(index, value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="מטבע" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="ILS">₪ (ILS)</SelectItem>
-                              <SelectItem value="USD">$ (USD)</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.currency`}
+                            defaultValue="ILS"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Select
+                                    value={field.value || 'ILS'}
+                                    onValueChange={(value: 'USD' | 'ILS') => {
+                                      field.onChange(value);
+                                      updateItemCurrency(index, value);
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="מטבע" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="ILS">₪ (ILS)</SelectItem>
+                                      <SelectItem value="USD">$ (USD)</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         </div>
                         <div className="md:col-span-1">
                           <div className="text-right font-semibold">
@@ -387,17 +503,42 @@ export default function PriceOffersPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">פרטים נוספים</h3>
                 <div className="grid grid-cols-1 gap-4">
-                  <Input
-                    {...form.register('validUntil')}
-                    type="date"
-                    className="text-right"
-                    id="valid-until"
+                  <FormField
+                    control={form.control}
+                    name="validUntil"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>תוקף הצעת המחיר</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="date"
+                            className="text-right"
+                            id="valid-until"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <Textarea
-                    {...form.register('notes')}
-                    placeholder="הערות"
-                    className="text-right"
-                    id="notes"
+                  
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>הערות</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="הערות"
+                            className="text-right"
+                            id="notes"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
               </div>
@@ -411,9 +552,8 @@ export default function PriceOffersPage() {
                   ביטול
                 </Button>
                 <Button 
-                  type="button" 
-                  onClick={handleGeneratePDF}
-                  disabled={isGenerating}
+                  type="submit"
+                  disabled={isGenerating || !form.formState.isValid}
                 >
                   {isGenerating ? (
                     <>

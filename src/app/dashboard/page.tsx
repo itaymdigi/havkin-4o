@@ -7,35 +7,116 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Users, Building2, FileText, Calendar } from "lucide-react"
+import { createServerClient } from "@/lib/supabase-server"
+import { formatDateTime } from "@/lib/utils"
+import { cookies } from "next/headers"
+import type { CalendarEvent } from "@/types"
 
-const stats = [
-  {
-    name: "Total Contacts",
-    value: "0",
-    icon: Users,
-    description: "Active contacts in your CRM",
-  },
-  {
-    name: "Companies",
-    value: "0",
-    icon: Building2,
-    description: "Registered companies",
-  },
-  {
-    name: "Price Offers",
-    value: "0",
-    icon: FileText,
-    description: "Created this month",
-  },
-  {
-    name: "Upcoming Events",
-    value: "0",
-    icon: Calendar,
-    description: "Scheduled for next 7 days",
-  },
-]
+// Server component to fetch dashboard data
+async function getDashboardData() {
+  try {
+    // Create server supabase client
+    const cookieStore = cookies()
+    const supabase = createServerClient(cookieStore)
 
-export default function DashboardPage() {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      throw new Error("User not authenticated")
+    }
+
+    // Fetch all required data in parallel
+    const [
+      { data: contacts, error: contactsError },
+      { data: companies, error: companiesError },
+      { data: events, error: eventsError },
+      { count: priceOffersCount, error: offersError }
+    ] = await Promise.all([
+      supabase.from("contacts").select("*").eq("user_id", user.id),
+      supabase.from("companies").select("*").eq("user_id", user.id),
+      supabase.from("calendar_events")
+        .select(`
+          *,
+          contact:contacts(first_name, last_name)
+        `)
+        .eq("user_id", user.id)
+        .order("start_time", { ascending: true }),
+      supabase
+        .from("price_offers")
+        .select("id", { count: "exact" })
+        .eq("user_id", user.id)
+        .gte("created_at", new Date(new Date().setDate(1)).toISOString())
+    ])
+
+    // Handle any errors
+    if (contactsError) console.error("Error fetching contacts:", contactsError)
+    if (companiesError) console.error("Error fetching companies:", companiesError)
+    if (eventsError) console.error("Error fetching events:", eventsError)
+    if (offersError) console.error("Error fetching price offers:", offersError)
+
+    // Filter upcoming events for next 7 days
+    const now = new Date()
+    const nextWeek = new Date(now)
+    nextWeek.setDate(now.getDate() + 7)
+    
+    const upcomingEvents = (events as CalendarEvent[] | null)?.filter(
+      (event: CalendarEvent) => 
+        new Date(event.start_time) >= now && 
+        new Date(event.start_time) <= nextWeek
+    ) || []
+
+    return {
+      totalContacts: contacts?.length || 0,
+      totalCompanies: companies?.length || 0,
+      monthlyPriceOffers: priceOffersCount || 0,
+      upcomingEvents: upcomingEvents,
+    }
+  } catch (error) {
+    console.error("Error fetching dashboard data:", error)
+    return {
+      totalContacts: 0,
+      totalCompanies: 0,
+      monthlyPriceOffers: 0,
+      upcomingEvents: [],
+    }
+  }
+}
+
+export default async function DashboardPage() {
+  const {
+    totalContacts,
+    totalCompanies,
+    monthlyPriceOffers,
+    upcomingEvents,
+  } = await getDashboardData()
+
+  const stats = [
+    {
+      name: "Total Contacts",
+      value: totalContacts.toString(),
+      icon: Users,
+      description: "Active contacts in your CRM",
+    },
+    {
+      name: "Companies",
+      value: totalCompanies.toString(),
+      icon: Building2,
+      description: "Registered companies",
+    },
+    {
+      name: "Price Offers",
+      value: monthlyPriceOffers.toString(),
+      icon: FileText,
+      description: "Created this month",
+    },
+    {
+      name: "Upcoming Events",
+      value: upcomingEvents.length.toString(),
+      icon: Calendar,
+      description: "Scheduled for next 7 days",
+    },
+  ]
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -86,9 +167,30 @@ export default function DashboardPage() {
               <CardDescription>Your scheduled events</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                No upcoming events scheduled.
-              </p>
+              {upcomingEvents.length > 0 ? (
+                <div className="space-y-4">
+                  {upcomingEvents.map((event: CalendarEvent) => (
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between border-b pb-2 last:border-0"
+                    >
+                      <div>
+                        <p className="font-medium">{event.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {event.contact ? `${event.contact.first_name} ${event.contact.last_name}` : 'No contact'}
+                        </p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDateTime(new Date(event.start_time))}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No upcoming events scheduled.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

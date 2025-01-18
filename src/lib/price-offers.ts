@@ -8,15 +8,31 @@ export async function savePriceOffer(priceOffer: PriceOffer, userId: string) {
   );
 
   try {
+    // Verify session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      throw new Error('No active session found');
+    }
+
     // First, create the price offer record
     const { data: offer, error: offerError } = await supabase
       .from('price_offers')
       .insert({
+        id: priceOffer.id,
         user_id: userId,
         status: 'draft',
-        valid_until: new Date(priceOffer.validUntil),
-        total_amount: priceOffer.total,
-        notes: priceOffer.notes,
+        valid_until: new Date(priceOffer.validUntil).toISOString(),
+        subtotal: priceOffer.subtotal,
+        tax: priceOffer.tax,
+        total: priceOffer.total,
+        notes: priceOffer.notes || null,
+        customer_name: priceOffer.customer.name,
+        customer_email: priceOffer.customer.email,
+        customer_phone: priceOffer.customer.phone,
+        customer_address: priceOffer.customer.address,
+        customer_company: priceOffer.customer.company || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();
@@ -28,11 +44,15 @@ export async function savePriceOffer(priceOffer: PriceOffer, userId: string) {
 
     // Then, create the price offer items
     const items = priceOffer.items.map(item => ({
+      id: crypto.randomUUID(),
       price_offer_id: offer.id,
+      description: item.description,
       quantity: item.quantity,
       unit_price: item.unitPrice,
-      description: item.description,
       currency: item.currency,
+      total: item.total,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }));
 
     const { error: itemsError } = await supabase
@@ -41,28 +61,17 @@ export async function savePriceOffer(priceOffer: PriceOffer, userId: string) {
 
     if (itemsError) {
       console.error('Error creating price offer items:', itemsError);
+      // If items fail to create, delete the price offer to maintain consistency
+      await supabase.from('price_offers').delete().eq('id', offer.id);
       throw new Error(`Failed to create price offer items: ${itemsError.message}`);
-    }
-
-    // Create a notification for the user
-    const { error: notificationError } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: userId,
-        title: 'הצעת מחיר חדשה נוצרה',
-        message: `הצעת מחיר חדשה נוצרה עבור ${priceOffer.customer.name}`,
-        type: 'price_offer',
-        related_id: offer.id,
-      });
-
-    if (notificationError) {
-      console.error('Error creating notification:', notificationError);
-      // Don't throw here, as the price offer was created successfully
     }
 
     return offer;
   } catch (error) {
     console.error('Error in savePriceOffer:', error);
-    throw error;
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error('Failed to save price offer');
   }
 } 

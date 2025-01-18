@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import { User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     let mounted = true;
@@ -21,7 +23,16 @@ export function useUser() {
         }
 
         if (mounted) {
-          setUser(session?.user ?? null);
+          if (session?.user) {
+            setUser(session.user);
+          } else {
+            setUser(null);
+            // If we're not on a public route, redirect to login
+            if (!window.location.pathname.startsWith('/login') && 
+                !window.location.pathname.startsWith('/auth/callback')) {
+              router.replace(`/login?redirectTo=${window.location.pathname}`);
+            }
+          }
           setLoading(false);
         }
       } catch (error) {
@@ -30,6 +41,10 @@ export function useUser() {
           setError(error as Error);
           setUser(null);
           setLoading(false);
+          // On error, redirect to login
+          if (!window.location.pathname.startsWith('/login')) {
+            router.replace(`/login?redirectTo=${window.location.pathname}`);
+          }
         }
       }
     };
@@ -39,7 +54,16 @@ export function useUser() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (mounted) {
-        setUser(session?.user ?? null);
+        if (session?.user) {
+          setUser(session.user);
+        } else {
+          setUser(null);
+          // If we're not on a public route, redirect to login
+          if (!window.location.pathname.startsWith('/login') && 
+              !window.location.pathname.startsWith('/auth/callback')) {
+            router.replace(`/login?redirectTo=${window.location.pathname}`);
+          }
+        }
         setLoading(false);
       }
     });
@@ -48,7 +72,7 @@ export function useUser() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   return {
     user,

@@ -12,9 +12,15 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Get the redirect URL from the query parameters
   const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+
+  // Set mounted state after component mounts to avoid hydration issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Redirect after successful login
   useEffect(() => {
@@ -31,6 +37,9 @@ export default function LoginPage() {
     };
   }, [router, redirectTo]);
 
+  // Don't render Auth component until after mount to avoid hydration issues
+  if (!mounted) return null;
+
   return (
     <div className="container mx-auto p-6">
       <PageHeader title="התחברות למערכת" />
@@ -40,6 +49,7 @@ export default function LoginPage() {
           <CardContent className="p-6">
             <Auth
               supabaseClient={supabase}
+              view="sign_in"
               appearance={{
                 theme: ThemeSupa,
                 variables: {
@@ -50,9 +60,17 @@ export default function LoginPage() {
                     },
                   },
                 },
+                className: {
+                  container: 'auth-container',
+                  button: 'auth-button',
+                  input: 'auth-input',
+                  label: 'auth-label',
+                },
               }}
+              theme="dark"
+              showLinks={false}
               providers={['google']}
-              redirectTo={`${window.location.origin}/auth/callback`}
+              redirectTo={`${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`}
               localization={{
                 variables: {
                   sign_in: {
