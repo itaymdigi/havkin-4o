@@ -2,6 +2,36 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { PriceOffer } from '@/types/price-offer';
 
+// Extend jsPDF type to include autoTable
+interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: (options: {
+    head: string[][];
+    body: string[][];
+    startY?: number;
+    theme?: string;
+    styles?: {
+      font?: string;
+      halign?: string;
+      fontSize?: number;
+      cellPadding?: number;
+      overflow?: string;
+      minCellHeight?: number;
+    };
+    headStyles?: {
+      fillColor?: number[];
+      textColor?: number[];
+      fontStyle?: string;
+    };
+    columnStyles?: {
+      [key: number]: { cellWidth: number | 'auto' };
+    };
+    margin?: { right: number; left: number };
+  }) => void;
+  lastAutoTable: {
+    finalY: number;
+  };
+}
+
 // Helper function to format currency
 const formatCurrency = (amount: number, currency: string) => {
   return currency === 'USD' ? `$${amount.toFixed(2)}` : `₪${amount.toFixed(2)}`;
@@ -25,12 +55,7 @@ const encodeHebrew = (text: string) => {
 export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
   try {
     // Create new PDF document
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      filters: ["ASCIIHexEncode"],
-    });
+    const doc = new jsPDF('p', 'mm', 'a4') as jsPDFWithAutoTable;
 
     // Set up document
     doc.setR2L(true);
@@ -113,7 +138,7 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
     });
 
     // Add totals section
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    const finalY = doc.lastAutoTable.finalY + 10;
     
     doc.setFontSize(12);
     doc.text([

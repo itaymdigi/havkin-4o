@@ -21,11 +21,6 @@ const containerStyle = {
   borderRadius: '0.5rem'
 };
 
-const defaultCenter = {
-  lat: 31.7683,  // Default to Jerusalem
-  lng: 35.2137
-};
-
 const mapOptions = {
   zoomControl: true,
   streetViewControl: false,
@@ -35,7 +30,10 @@ const mapOptions = {
 };
 
 export function MapView({ address, className }: MapViewProps) {
-  const [coordinates, setCoordinates] = useState<GeocodingResult | null>(null);
+  const [coordinates, setCoordinates] = useState<GeocodingResult>({
+    lat: 31.7683,  // Default to Jerusalem
+    lng: 35.2137
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   

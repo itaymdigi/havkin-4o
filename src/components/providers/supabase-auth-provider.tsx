@@ -4,8 +4,15 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from "next/navigation"
 import { supabaseConfig } from '@/config/supabase'
+import { SupabaseClient } from '@supabase/supabase-js'
 
-const AuthContext = createContext<any>({})
+interface AuthContextType {
+  supabase: SupabaseClient
+}
+
+const AuthContext = createContext<AuthContextType>({
+  supabase: createBrowserClient(supabaseConfig.url, supabaseConfig.anonKey)
+})
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => 

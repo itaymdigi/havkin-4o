@@ -13,7 +13,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { PriceOffer, PriceOfferItem } from '@/types/price-offer';
-import { generatePDF } from '@/lib/pdf-generator';
 import { savePriceOffer } from '@/lib/price-offers';
 import { Trash2, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
@@ -353,7 +352,7 @@ export default function PriceOffersPage() {
                         <div className="md:col-span-2">כמות</div>
                         <div className="md:col-span-2">מחיר ליחידה</div>
                         <div className="md:col-span-2">מטבע</div>
-                        <div className="md:col-span-1">סה"כ</div>
+                        <div className="md:col-span-1">סה&quot;כ</div>
                         <div className="md:col-span-1"></div>
                       </div>
                       
@@ -494,9 +493,9 @@ export default function PriceOffersPage() {
                       {items.length > 0 && (
                         <div className="mt-4 border-t pt-4">
                           <div className="text-left space-y-2">
-                            <div>סה"כ לפני מע"מ: ₪{calculateTotals().subtotal.toFixed(2)}</div>
-                            <div>מע"מ (18%): ₪{calculateTotals().tax.toFixed(2)}</div>
-                            <div className="font-bold">סה"כ כולל מע"מ: ₪{calculateTotals().total.toFixed(2)}</div>
+                            <div>סה&quot;כ לפני מע&quot;מ: ₪{calculateTotals().subtotal.toFixed(2)}</div>
+                            <div>מע&quot;מ (18%): ₪{calculateTotals().tax.toFixed(2)}</div>
+                            <div className="font-bold">סה&quot;כ כולל מע&quot;מ: ₪{calculateTotals().total.toFixed(2)}</div>
                           </div>
                         </div>
                       )}

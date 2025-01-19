@@ -11,7 +11,6 @@ import { PageHeader } from '@/components/ui/page-header';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // Get the redirect URL from the query parameters

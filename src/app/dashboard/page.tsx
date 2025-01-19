@@ -49,7 +49,6 @@ async function getDashboardData() {
 
     // Get date ranges
     const now = new Date()
-    const currentYear = now.getFullYear()
     
     const startCurrentYear = startOfYear(now)
     const endCurrentYear = endOfYear(now)
@@ -66,8 +65,8 @@ async function getDashboardData() {
       { data: events, error: eventsError },
       { data: currentYearOffers, error: currentYearOffersError },
       { data: lastYearOffers, error: lastYearOffersError },
-      { data: currentMonthOffers, error: currentMonthOffersError },
-      { data: lastMonthOffers, error: lastMonthOffersError },
+      { data: currentMonthOffers },
+      { data: lastMonthOffers },
       { data: uploadedFiles, error: filesError },
       { count: totalOffers, error: totalOffersError }
     ] = await Promise.all([

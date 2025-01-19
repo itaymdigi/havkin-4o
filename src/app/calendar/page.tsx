@@ -44,6 +44,14 @@ interface CalendarEvent {
   location?: string;
 }
 
+interface ToolbarProps {
+  onNavigate: (action: 'PREV' | 'NEXT' | 'TODAY') => void;
+  label: string;
+  onView?: (view: string) => void;
+  views?: string[];
+  view?: string;
+}
+
 export default function CalendarPage() {
   const router = useRouter();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -151,7 +159,7 @@ export default function CalendarPage() {
 
   // Custom components
   const components = {
-    toolbar: (props: any) => (
+    toolbar: (props: ToolbarProps) => (
       <div className="flex justify-between items-center mb-4 p-2">
         <div className="flex items-center gap-2">
           <Button
@@ -183,7 +191,7 @@ export default function CalendarPage() {
             variant="outline"
             size="sm"
             onClick={() => props.onView(Views.MONTH)}
-            className={view === Views.MONTH ? 'bg-primary text-primary-foreground' : ''}
+            className={props.view === Views.MONTH ? 'bg-primary text-primary-foreground' : ''}
           >
             {messages.month}
           </Button>
@@ -191,7 +199,7 @@ export default function CalendarPage() {
             variant="outline"
             size="sm"
             onClick={() => props.onView(Views.WEEK)}
-            className={view === Views.WEEK ? 'bg-primary text-primary-foreground' : ''}
+            className={props.view === Views.WEEK ? 'bg-primary text-primary-foreground' : ''}
           >
             {messages.week}
           </Button>
@@ -199,7 +207,7 @@ export default function CalendarPage() {
             variant="outline"
             size="sm"
             onClick={() => props.onView(Views.DAY)}
-            className={view === Views.DAY ? 'bg-primary text-primary-foreground' : ''}
+            className={props.view === Views.DAY ? 'bg-primary text-primary-foreground' : ''}
           >
             {messages.day}
           </Button>
@@ -207,7 +215,7 @@ export default function CalendarPage() {
             variant="outline"
             size="sm"
             onClick={() => props.onView(Views.AGENDA)}
-            className={view === Views.AGENDA ? 'bg-primary text-primary-foreground' : ''}
+            className={props.view === Views.AGENDA ? 'bg-primary text-primary-foreground' : ''}
           >
             {messages.agenda}
           </Button>

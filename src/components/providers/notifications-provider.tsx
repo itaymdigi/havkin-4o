@@ -54,14 +54,14 @@ export function NotificationsProvider({
     
     const channel = supabase
       .channel('notifications')
-      .on<Notification>(
-        'postgres_changes',
+      .on(
+        'INSERT',
         {
           event: '*',
           schema: 'public',
           table: 'notifications'
         },
-        async (payload: RealtimePostgresChangesPayload<Notification>) => {
+        async () => {
           if (!isMounted) return
           await refreshNotifications()
         }

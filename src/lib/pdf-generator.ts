@@ -1,7 +1,36 @@
-import { jsPDF } from 'jspdf';
+import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { PriceOffer } from '@/types/price-offer';
 import { createBrowserClient } from '@supabase/ssr';
+
+// Extend jsPDF type to include autoTable
+interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: (options: {
+    head: string[][];
+    body: string[][];
+    startY: number;
+    theme: string;
+    styles: {
+      font: string;
+      halign: string;
+      fontSize: number;
+      cellPadding: number;
+      overflow: string;
+      minCellHeight: number;
+    };
+    headStyles: {
+      fillColor: number[];
+      textColor: number[];
+      fontStyle: string;
+    };
+    columnStyles: {
+      [key: number]: { cellWidth: number };
+    };
+  }) => void;
+  lastAutoTable: {
+    finalY: number;
+  };
+}
 
 export async function generatePDF(priceOffer: PriceOffer, userId: string) {
   const supabase = createBrowserClient(
@@ -24,12 +53,7 @@ export async function generatePDF(priceOffer: PriceOffer, userId: string) {
     console.log('Starting PDF generation...');
     
     // Create new PDF document
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      putOnlyUsedFonts: true
-    });
+    const doc = new jsPDF('p', 'mm', 'a4') as jsPDFWithAutoTable;
     
     // Set RTL mode and default styling
     doc.setR2L(true);
@@ -112,7 +136,7 @@ export async function generatePDF(priceOffer: PriceOffer, userId: string) {
     const fileName = `${userId}/price-offers/${priceOffer.id}/price-offer-${priceOffer.id}.pdf`;
     console.log('Uploading PDF to:', fileName);
     
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('documents')
       .upload(fileName, pdfBlob, {
         contentType: 'application/pdf',

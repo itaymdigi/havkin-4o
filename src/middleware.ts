@@ -19,7 +19,7 @@ export async function middleware(req: NextRequest) {
           set: (name, value, options) => {
             res.cookies.set(name, value, options);
           },
-          remove: (name, options) => {
+          remove: (name) => {
             res.cookies.delete(name);
           },
         },
@@ -35,7 +35,7 @@ export async function middleware(req: NextRequest) {
     }
 
     // Check auth session
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
 
     // If there's no session and the route isn't public, redirect to login
     if (!session && !isPublicRoute) {
