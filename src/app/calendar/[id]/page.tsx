@@ -31,6 +31,7 @@ interface EventDetails {
   end_time: string;
   created_at: string;
   user_id: string;
+  contact_id?: string | null;
 }
 
 export default function EventDetailsPage() {
@@ -55,7 +56,7 @@ export default function EventDetailsPage() {
 
         const { data, error } = await supabase
           .from('calendar_events')
-          .select('*')
+          .select('id, title, description, location, start_time, end_time, created_at, user_id, contact_id')
           .eq('id', id)
           .eq('user_id', user.id)
           .single();
@@ -70,7 +71,12 @@ export default function EventDetailsPage() {
         }
 
         if (data) {
-          setEvent(data as EventDetails);
+          setEvent({
+            ...data,
+            description: data.description || undefined,
+            location: data.location || undefined,
+            contact_id: data.contact_id || null,
+          } as EventDetails);
         }
       } catch (error) {
         console.error('Error fetching event details:', error);
