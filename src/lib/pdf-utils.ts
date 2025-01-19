@@ -21,6 +21,10 @@ interface jsPDFWithAutoTable extends jsPDF {
       fillColor?: number[];
       textColor?: number[];
       fontStyle?: string;
+      halign?: string;
+      fontSize?: number;
+      minCellHeight?: number;
+      cellPadding?: number;
     };
     columnStyles?: {
       [key: number]: { cellWidth: number | 'auto' };
@@ -91,10 +95,10 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
       encodeHebrew(`טלפון: ${priceOffer.customer.phone}`),
       encodeHebrew(`אימייל: ${priceOffer.customer.email}`),
       encodeHebrew(`כתובת: ${priceOffer.customer.address}`),
-    ].filter(Boolean);
+    ] as string[];
 
-    doc.text(customerDetails, rightEdge, 65, {
-      align: 'right',
+    doc.text(customerDetails.filter(Boolean) as string[], rightEdge, 65, {
+      align: 'right', 
       lineHeightFactor: 1.5
     });
 
@@ -115,17 +119,17 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
       theme: 'grid',
       headStyles: {
         fillColor: [66, 66, 66],
-        textColor: 255,
+        textColor: [255, 255, 255],
         halign: 'right',
         fontSize: 11,
         minCellHeight: 10,
-        cellPadding: 5,
+        cellPadding: 5
       },
-      bodyStyles: {
+      styles: { // Changed from bodyStyles to styles
         halign: 'right',
         fontSize: 10,
         cellPadding: 5,
-        minCellHeight: 10,
+        minCellHeight: 10
       },
       columnStyles: {
         0: { cellWidth: 25 }, // סה"כ
@@ -134,12 +138,11 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
         3: { cellWidth: 20 }, // כמות
         4: { cellWidth: 'auto' }, // תיאור פריט
       },
-      margin: { right: margin, left: margin },
+      margin: { right: margin, left: margin }
     });
 
     // Add totals section
     const finalY = doc.lastAutoTable.finalY + 10;
-    
     doc.setFontSize(12);
     doc.text([
       encodeHebrew(`סה"כ לפני מע"מ: ${formatCurrency(priceOffer.subtotal, 'ILS')}`),

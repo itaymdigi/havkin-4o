@@ -12,6 +12,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Get the redirect URL from the query parameters
   const redirectTo = searchParams.get('redirectTo') || '/dashboard';
@@ -21,13 +22,19 @@ export default function LoginPage() {
     setMounted(true);
   }, []);
 
-  // Redirect after successful login
+  // Updated auth state effect with loading
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        router.push(redirectTo);
+        setLoading(true);
+        // Use async/await instead of .then() since router.push returns void
+        const handleRedirect = async () => {
+          await router.push(redirectTo);
+          setLoading(false);
+        };
+        handleRedirect();
       }
     });
 
@@ -45,7 +52,7 @@ export default function LoginPage() {
       
       <div className="max-w-md mx-auto">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className={`p-6 ${loading ? 'opacity-50' : ''}`}>
             <Auth
               supabaseClient={supabase}
               view="sign_in"
@@ -83,6 +90,11 @@ export default function LoginPage() {
                 },
               }}
             />
+            {loading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/5">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

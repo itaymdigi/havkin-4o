@@ -3,11 +3,19 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/lib/notifications"
 import { supabase } from "@/lib/supabase"
-import type { Notification } from "@/types"
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
+// Define Notification type locally since @/types/notifications module is not found
+type Notification = {
+  id: string
+  userId: string 
+  message: string
+  read: boolean
+  createdAt: string
+}
+
 interface NotificationsContextType {
-  notifications: Notification[]
+  notifications: Notification[] // Array of notifications
   unreadCount: number
   markAsRead: (id: string) => Promise<void>
   markAllAsRead: () => Promise<void>
@@ -55,9 +63,9 @@ export function NotificationsProvider({
     const channel = supabase
       .channel('notifications')
       .on(
-        'INSERT',
+        'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'notifications'
         },
