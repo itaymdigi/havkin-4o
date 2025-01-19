@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format } from "date-fns"
+import { formatInTimeZone } from "date-fns-tz"
+import he from "date-fns/locale/he"
 
 // Utility function to merge Tailwind classes
 export function cn(...inputs: ClassValue[]) {
