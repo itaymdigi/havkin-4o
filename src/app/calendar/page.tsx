@@ -44,12 +44,21 @@ interface CalendarEvent {
   location?: string;
 }
 
+interface EventFormData {
+  title: string;
+  description?: string;
+  location?: string;
+  start_time: string;
+  end_time: string;
+}
+
 interface ToolbarProps {
+  date: Date;
   onNavigate: (action: 'PREV' | 'NEXT' | 'TODAY') => void;
   label: string;
-  onView?: (view: string) => void;
-  views?: string[];
-  view?: string;
+  onView: (view: string) => void;
+  views: string[];
+  view: string;
 }
 
 export default function CalendarPage() {
@@ -117,9 +126,15 @@ export default function CalendarPage() {
     showMore: (total: number) => `עוד ${total}`,
   };
 
-  const handleCreateEvent = async (data: EventFormValues) => {
+  const handleCreateEvent = async (data: EventFormData) => {
     try {
-      // Parse the formatted dates back to ISO format for storage
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        toast.error('יש להתחבר כדי ליצור אירוע');
+        return;
+      }
+
       const startDate = parse(data.start_time, 'dd/MM/yyyy HH:mm', new Date());
       const endDate = parse(data.end_time, 'dd/MM/yyyy HH:mm', new Date());
 
@@ -129,12 +144,13 @@ export default function CalendarPage() {
         location: data.location || '',
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
+        user_id: user.id,
+        contact_id: null
       });
 
-      // Refresh events list
-      await fetchEvents();
       toast.success('האירוע נוצר בהצלחה');
       setIsNewEventDialogOpen(false);
+      router.refresh();
     } catch (error) {
       console.error('Error creating event:', error);
       toast.error('אירעה שגיאה ביצירת האירוע');
@@ -255,9 +271,73 @@ export default function CalendarPage() {
               culture="he"
               rtl={true}
               formats={formats}
-              components={components}
+              components={{
+                toolbar: (props: any) => (
+                  <div className="flex justify-between items-center mb-4 p-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => props.onNavigate('PREV')}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => props.onNavigate('NEXT')}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => props.onNavigate('TODAY')}
+                      >
+                        {messages.today}
+                      </Button>
+                    </div>
+                    <h2 className="text-xl font-semibold">
+                      {format(props.date, 'MMMM yyyy', { locale: he })}
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => props.onView(Views.MONTH)}
+                        className={props.view === Views.MONTH ? 'bg-primary text-primary-foreground' : ''}
+                      >
+                        {messages.month}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => props.onView(Views.WEEK)}
+                        className={props.view === Views.WEEK ? 'bg-primary text-primary-foreground' : ''}
+                      >
+                        {messages.week}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => props.onView(Views.DAY)}
+                        className={props.view === Views.DAY ? 'bg-primary text-primary-foreground' : ''}
+                      >
+                        {messages.day}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => props.onView(Views.AGENDA)}
+                        className={props.view === Views.AGENDA ? 'bg-primary text-primary-foreground' : ''}
+                      >
+                        {messages.agenda}
+                      </Button>
+                    </div>
+                  </div>
+                ),
+              }}
               view={view}
-              onView={setView}
+              onView={(newView: string) => setView(newView as typeof view)}
               date={date}
               onNavigate={setDate}
               onSelectEvent={(event) => router.push(`/calendar/${event.id}`)}
@@ -278,7 +358,7 @@ export default function CalendarPage() {
               <DialogTitle>אירוע חדש</DialogTitle>
             </DialogHeader>
             <NewEventForm 
-              onSubmit={handleCreateEvent} 
+              onSubmit={(data: EventFormData) => handleCreateEvent(data)} 
               onCancel={() => setIsNewEventDialogOpen(false)}
               initialDate={date}
             />
