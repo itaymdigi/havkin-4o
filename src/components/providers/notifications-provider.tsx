@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/lib/notifications"
 import { supabase } from "@/lib/supabase"
-import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
 // Define Notification type locally since @/types/notifications module is not found
 type Notification = {

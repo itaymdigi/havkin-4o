@@ -3,33 +3,44 @@ import 'jspdf-autotable';
 import { PriceOffer } from '@/types/price-offer';
 import { createBrowserClient } from '@supabase/ssr';
 
+// Add these types at the top of the file after the existing imports
+type AutoTableStyles = {
+  font: string;
+  halign: string;
+  fontSize: number;
+  cellPadding: number;
+  overflow: string;
+  minCellHeight: number;
+};
+
+type AutoTableHeadStyles = {
+  fillColor: number[];
+  textColor: number[];
+  fontStyle: string;
+};
+
+type AutoTableColumnStyles = {
+  [key: number]: { cellWidth: number };
+};
+
+type AutoTableOptions = {
+  head: string[][];
+  body: string[][];
+  startY: number;
+  theme: string;
+  styles: AutoTableStyles;
+  headStyles: AutoTableHeadStyles;
+  columnStyles: AutoTableColumnStyles;
+};
+
+interface AutoTableOutput {
+  finalY: number;
+}
+
 // Extend jsPDF type to include autoTable
 interface jsPDFWithAutoTable extends jsPDF {
-  autoTable: (options: {
-    head: string[][];
-    body: string[][];
-    startY: number;
-    theme: string;
-    styles: {
-      font: string;
-      halign: string;
-      fontSize: number;
-      cellPadding: number;
-      overflow: string;
-      minCellHeight: number;
-    };
-    headStyles: {
-      fillColor: number[];
-      textColor: number[];
-      fontStyle: string;
-    };
-    columnStyles: {
-      [key: number]: { cellWidth: number };
-    };
-  }) => void;
-  lastAutoTable: {
-    finalY: number;
-  };
+  autoTable: (options: AutoTableOptions) => void;
+  lastAutoTable: AutoTableOutput;
 }
 
 export async function generatePDF(priceOffer: PriceOffer, userId: string) {
@@ -89,7 +100,7 @@ export async function generatePDF(priceOffer: PriceOffer, userId: string) {
       `${item.currency === 'USD' ? '$' : '₪'}${item.total.toFixed(2)}`
     ]);
     
-    (doc as any).autoTable({
+    doc.autoTable({
       head: tableHeaders,
       body: tableData,
       startY: 150,
@@ -116,7 +127,7 @@ export async function generatePDF(priceOffer: PriceOffer, userId: string) {
     });
     
     // Add totals
-    const finalY = (doc as any).lastAutoTable.finalY + 20;
+    const finalY = doc.lastAutoTable.finalY + 20;
     doc.text(`סה"כ לפני מע"מ: ₪${priceOffer.subtotal.toFixed(2)}`, 190, finalY, { align: 'right' });
     doc.text(`מע"מ (18%): ₪${priceOffer.tax.toFixed(2)}`, 190, finalY + 10, { align: 'right' });
     doc.text(`סה"כ כולל מע"מ: ₪${priceOffer.total.toFixed(2)}`, 190, finalY + 20, { align: 'right' });

@@ -11,7 +11,7 @@ import { formatDateTime, formatCurrency } from "@/lib/utils"
 import type { CalendarEvent } from "@/types"
 import { BarChart } from "@/components/charts/bar-chart"
 import { LineChart } from "@/components/charts/line-chart"
-import { startOfYear, endOfYear, format, subYears, startOfMonth, endOfMonth, subMonths } from "date-fns"
+import { startOfYear, endOfYear, format, subYears, startOfMonth, subMonths } from "date-fns"
 
 // Server component to fetch dashboard data
 export const revalidate = 60 // Revalidate every 60 seconds
