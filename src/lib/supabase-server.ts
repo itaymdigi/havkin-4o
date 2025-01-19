@@ -3,16 +3,7 @@ import { cookies } from 'next/headers'
 import { supabaseConfig } from '@/config/supabase'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  if (typeof error === 'string') return error
-  try {
-    return JSON.stringify(error)
-  } catch {
-    return String(error)
-  }
-}
+import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies'
 
 export function createServerSupabaseClient(): SupabaseClient<Database> {
   return createServerClient<Database>(
@@ -30,8 +21,7 @@ export function createServerSupabaseClient(): SupabaseClient<Database> {
           const cookieStore = await cookies()
           cookieStore.set(name, value, {
             ...rest,
-            // @ts-ignore - Next.js types are not up to date
-            sameSite: sameSite
+            sameSite: sameSite as ResponseCookie['sameSite']
           })
         },
         async remove(name: string, options: CookieOptions) {
@@ -40,8 +30,7 @@ export function createServerSupabaseClient(): SupabaseClient<Database> {
           const cookieStore = await cookies()
           cookieStore.set(name, '', {
             ...rest,
-            // @ts-ignore - Next.js types are not up to date
-            sameSite: sameSite,
+            sameSite: sameSite as ResponseCookie['sameSite'],
             maxAge: 0
           })
         }
