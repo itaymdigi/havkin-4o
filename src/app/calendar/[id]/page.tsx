@@ -34,6 +34,12 @@ interface EventDetails {
   contact_id?: string | null;
 }
 
+interface SupabaseError {
+  code: string;
+  message: string;
+  details?: string;
+}
+
 export default function EventDetailsPage() {
   const params = useParams();
   const id = params?.id as string;
@@ -78,8 +84,9 @@ export default function EventDetailsPage() {
             contact_id: data.contact_id || null,
           } as EventDetails);
         }
-      } catch (error) {
-        console.error('Error fetching event details:', error);
+      } catch (error: unknown) {
+        const err = error as Error | SupabaseError;
+        console.error('Error fetching event details:', err);
         toast.error('אירעה שגיאה בטעינת פרטי האירוע');
       } finally {
         setIsLoading(false);
