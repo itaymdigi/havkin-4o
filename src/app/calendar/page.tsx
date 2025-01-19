@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { Calendar, dateFnsLocalizer, Views, ToolbarProps as BigCalendarToolbarProps } from 'react-big-calendar';
+import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import format from 'date-fns/format';
 import parse from 'date-fns/parse';
 import startOfWeek from 'date-fns/startOfWeek';
@@ -54,14 +54,9 @@ interface EventFormData {
 
 import { View } from 'react-big-calendar';
 
-interface ToolbarProps {
-  date: Date;
-  onNavigate: (action: 'PREV' | 'NEXT' | 'TODAY') => void;
-  label: string;
-  onView: (view: View) => void;
-  views: View[];
-  view: View;
-}
+import { ToolbarProps as BigCalendarToolbarProps } from 'react-big-calendar';
+
+interface ToolbarProps extends BigCalendarToolbarProps<CalendarEvent, object> {}
 
 export default function CalendarPage() {
   const router = useRouter();
