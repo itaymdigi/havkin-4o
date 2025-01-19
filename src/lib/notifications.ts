@@ -1,5 +1,5 @@
 import { supabase } from "./supabase"
-import type { Notification } from "@/types"
+import type { Notification } from "../types" // Adjust the path as necessary
 
 export async function getNotifications() {
   const response = await fetch('/api/notifications', {

@@ -49,4 +49,16 @@ export interface Reminder {
   created_at: string
   updated_at: string
   event?: CalendarEvent
+}
+
+export interface Notification {
+  id: string
+  user_id: string
+  title: string
+  message: string
+  type: string
+  related_id: string | null
+  read: boolean
+  created_at: string
+  updated_at: string
 } 

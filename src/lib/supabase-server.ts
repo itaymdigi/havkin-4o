@@ -1,19 +1,8 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { supabaseConfig } from '@/config/supabase'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
-
-interface CookieOptions {
-  name: string
-  value: string
-  maxAge?: number
-  domain?: string
-  path?: string
-  secure?: boolean
-  httpOnly?: boolean
-  sameSite?: 'strict' | 'lax' | 'none'
-}
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
@@ -25,46 +14,38 @@ function getErrorMessage(error: unknown): string {
   }
 }
 
-interface CookieHandlers {
-  get: (name: string) => Promise<string | undefined>
-  set: (name: string, value: string, options: CookieOptions) => void
-  remove: (name: string, options: CookieOptions) => void
-}
-
-export async function createServerSupabaseClient(): Promise<SupabaseClient<Database>> {
-  const cookieStore = cookies()
-
-  const cookieHandlers: CookieHandlers = {
-    async get(name: string): Promise<string | undefined> {
-      try {
-        const cookie = await cookieStore.get(name)
-        return cookie?.value
-      } catch (error) {
-        console.error('Error getting cookie:', getErrorMessage(error))
-        return undefined
-      }
-    },
-    async set(name: string, value: string, options: CookieOptions): Promise<void> {
-      try {
-        await cookieStore.set({ name, value, ...options })
-      } catch (error) {
-        console.error('Error setting cookie:', getErrorMessage(error))
-      }
-    },
-    async remove(name: string, options: CookieOptions): Promise<void> {
-      try {
-        await cookieStore.set({ name, value: '', ...options, maxAge: 0 })
-      } catch (error) {
-        console.error('Error removing cookie:', getErrorMessage(error))
-      }
-    },
-  }
-
+export function createServerSupabaseClient(): SupabaseClient<Database> {
   return createServerClient<Database>(
     supabaseConfig.url,
     supabaseConfig.anonKey,
     {
-      cookies: cookieHandlers,
+      cookies: {
+        async get(name: string) {
+          const cookie = (await cookies()).get(name)
+          return cookie?.value ?? ''
+        },
+        async set(name: string, value: string, options: CookieOptions) {
+          // Convert options to compatible format
+          const { sameSite, ...rest } = options
+          const cookieStore = await cookies()
+          cookieStore.set(name, value, {
+            ...rest,
+            // @ts-ignore - Next.js types are not up to date
+            sameSite: sameSite
+          })
+        },
+        async remove(name: string, options: CookieOptions) {
+          // Convert options to compatible format
+          const { sameSite, ...rest } = options
+          const cookieStore = await cookies()
+          cookieStore.set(name, '', {
+            ...rest,
+            // @ts-ignore - Next.js types are not up to date
+            sameSite: sameSite,
+            maxAge: 0
+          })
+        }
+      }
     }
   )
 } 

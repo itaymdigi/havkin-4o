@@ -3,18 +3,10 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/lib/notifications"
 import { supabase } from "@/lib/supabase"
-
-// Define Notification type locally since @/types/notifications module is not found
-type Notification = {
-  id: string
-  userId: string 
-  message: string
-  read: boolean
-  createdAt: string
-}
+import type { Notification } from "@/types"
 
 interface NotificationsContextType {
-  notifications: Notification[] // Array of notifications
+  notifications: Notification[]
   unreadCount: number
   markAsRead: (id: string) => Promise<void>
   markAllAsRead: () => Promise<void>
