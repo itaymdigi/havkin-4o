@@ -52,11 +52,9 @@ interface EventFormData {
   end_time: string;
 }
 
-import { View } from 'react-big-calendar';
-
 import { ToolbarProps as BigCalendarToolbarProps } from 'react-big-calendar';
 
-interface ToolbarProps extends BigCalendarToolbarProps<CalendarEvent, object> {}
+type ToolbarProps = BigCalendarToolbarProps<CalendarEvent>;
 
 export default function CalendarPage() {
   const router = useRouter();
