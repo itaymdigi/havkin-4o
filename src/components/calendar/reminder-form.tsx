@@ -52,10 +52,6 @@ export function ReminderForm({ eventId, eventStartTime }: ReminderFormProps) {
     },
   })
 
-  useEffect(() => {
-    loadReminders()
-  }, [eventId, loadReminders])
-
   const loadReminders = useCallback(async () => {
     try {
       const data = await getEventReminders(eventId)
@@ -65,6 +61,10 @@ export function ReminderForm({ eventId, eventStartTime }: ReminderFormProps) {
       toast.error('שגיאה בטעינת תזכורות')
     }
   }, [eventId])
+
+  useEffect(() => {
+    loadReminders()
+  }, [eventId, loadReminders])
 
   async function onSubmit(data: ReminderFormValues) {
     try {

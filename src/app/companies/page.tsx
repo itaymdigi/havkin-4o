@@ -114,8 +114,11 @@ export default function CompaniesPage() {
             <SelectContent>
               <SelectItem value="all">All Industries</SelectItem>
               {industries.map((industry) => (
-                <SelectItem key={industry} value={industry}>
-                  {industry}
+                <SelectItem 
+                  key={industry} 
+                  value={industry ?? ''} // Handle potential null value
+                >
+                  {industry ?? 'Unknown Industry'} {/* Show fallback text if null */}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -42,7 +42,7 @@ const eventSchema = z.object({
   start_time: z.string().min(1, "Start time is required"),
   end_time: z.string().min(1, "End time is required"),
   location: z.string().optional(),
-  contact_id: z.string().optional().transform(val => val === "none" ? null : val),
+  contact_id: z.string().nullable().default(null),
 })
 
 type EventFormValues = z.infer<typeof eventSchema>
@@ -108,12 +108,18 @@ export function EventFormDialog({
         ...data,
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
+        description: data.description || null,
+        location: data.location || null,
       }
       
       if (event) {
         await updateCalendarEvent(event.id, formattedData)
       } else {
-        await createCalendarEvent(formattedData)
+        await createCalendarEvent({ 
+          ...formattedData,
+          user_id: "default_user_id",
+          contact_id: data.contact_id === "none" ? null : data.contact_id
+        })
       }
       setOpen(false)
       onSuccess()

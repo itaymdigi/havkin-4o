@@ -88,7 +88,14 @@ export function ContactFormDialog({
       if (contact) {
         await updateContact(contact.id, data)
       } else {
-        await createContact(data)
+        await createContact({
+          ...data,
+          user_id: "some_user_id",
+          email: data.email ?? null,
+          phone: data.phone ?? null,
+          position: data.position ?? null,
+          company_id: data.company_id ?? null,
+        })
       }
       setOpen(false)
       onSuccess()

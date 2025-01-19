@@ -52,12 +52,9 @@ export function NotificationsDropdown() {
                 onClick={() => markAsRead(notification.id)}
               >
                 <div className="flex flex-col gap-1">
-                  <div className="font-medium">{notification.title}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {notification.message}
-                  </div>
+                  <div className="font-medium">{notification.message}</div>
                   <div className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                   </div>
                 </div>
               </DropdownMenuItem>

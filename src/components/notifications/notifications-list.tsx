@@ -64,12 +64,11 @@ export function NotificationsList() {
             onClick={() => handleMarkAsRead(notification.id)}
           >
             <div className="space-y-1">
-              <h3 className="font-medium">{notification.title}</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm font-medium">
                 {notification.message}
               </p>
               <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(notification.created_at), {
+                {formatDistanceToNow(new Date(notification.createdAt), {
                   addSuffix: true,
                 })}
               </p>

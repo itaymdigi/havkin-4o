@@ -32,7 +32,14 @@ export const FilesList = forwardRef<FilesListRef>((props, ref) => {
       setLoading(true)
       const { data, error } = await supabase.storage.from('files').list()
       if (error) throw error
-      setFiles(data || [])
+      setFiles((data || []).map(file => ({
+        id: file.id,
+        name: file.name,
+        path: file.name,
+        size: file.metadata?.size || 0,
+        type: file.metadata?.mimetype || 'application/octet-stream',
+        created_at: file.created_at
+      })))
     } catch (error) {
       console.error('Error fetching files:', error)
       toast({

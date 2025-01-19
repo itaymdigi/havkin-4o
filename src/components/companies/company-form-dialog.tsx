@@ -65,7 +65,14 @@ export function CompanyFormDialog({
       if (company) {
         await updateCompany(company.id, data)
       } else {
-        await createCompany(data)
+        await createCompany({ 
+          ...data, 
+          user_id: "some_user_id",
+          industry: data.industry ?? null,
+          website: data.website ?? null,
+          address: data.address ?? null,
+          phone: data.phone ?? null
+        })
       }
       setOpen(false)
       onSuccess()
