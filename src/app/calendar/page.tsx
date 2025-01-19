@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
+import { Calendar, dateFnsLocalizer, Views, ToolbarProps as BigCalendarToolbarProps } from 'react-big-calendar';
 import format from 'date-fns/format';
 import parse from 'date-fns/parse';
 import startOfWeek from 'date-fns/startOfWeek';
@@ -18,7 +18,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './styles.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { createCalendarEvent } from '@/lib/calendar-events';
-import { NewEventForm, type EventFormValues } from './components/new-event-form';
+import { NewEventForm } from './components/new-event-form';
 import { DashboardLayout } from "@/components/dashboard-layout";
 
 // Setup the localizer for react-big-calendar
@@ -52,13 +52,15 @@ interface EventFormData {
   end_time: string;
 }
 
+import { View } from 'react-big-calendar';
+
 interface ToolbarProps {
   date: Date;
   onNavigate: (action: 'PREV' | 'NEXT' | 'TODAY') => void;
   label: string;
-  onView: (view: string) => void;
-  views: string[];
-  view: string;
+  onView: (view: View) => void;
+  views: View[];
+  view: View;
 }
 
 export default function CalendarPage() {
@@ -173,73 +175,6 @@ export default function CalendarPage() {
       `${format(start, 'HH:mm', { locale: he })} - ${format(end, 'HH:mm', { locale: he })}`,
   };
 
-  // Custom components
-  const components = {
-    toolbar: (props: ToolbarProps) => (
-      <div className="flex justify-between items-center mb-4 p-2">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => props.onNavigate('PREV')}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => props.onNavigate('NEXT')}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => props.onNavigate('TODAY')}
-          >
-            {messages.today}
-          </Button>
-        </div>
-        <h2 className="text-xl font-semibold">
-          {format(props.date, 'MMMM yyyy', { locale: he })}
-        </h2>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => props.onView(Views.MONTH)}
-            className={props.view === Views.MONTH ? 'bg-primary text-primary-foreground' : ''}
-          >
-            {messages.month}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => props.onView(Views.WEEK)}
-            className={props.view === Views.WEEK ? 'bg-primary text-primary-foreground' : ''}
-          >
-            {messages.week}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => props.onView(Views.DAY)}
-            className={props.view === Views.DAY ? 'bg-primary text-primary-foreground' : ''}
-          >
-            {messages.day}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => props.onView(Views.AGENDA)}
-            className={props.view === Views.AGENDA ? 'bg-primary text-primary-foreground' : ''}
-          >
-            {messages.agenda}
-          </Button>
-        </div>
-      </div>
-    ),
-  };
-
   return (
     <DashboardLayout>
       <div className="container mx-auto p-6" dir="rtl">
@@ -272,7 +207,7 @@ export default function CalendarPage() {
               rtl={true}
               formats={formats}
               components={{
-                toolbar: (props: any) => (
+                toolbar: (props: ToolbarProps) => (
                   <div className="flex justify-between items-center mb-4 p-2">
                     <div className="flex items-center gap-2">
                       <Button
