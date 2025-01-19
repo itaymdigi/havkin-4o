@@ -1,18 +1,6 @@
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-
-interface CookieOptions {
-  name: string;
-  value?: string;
-  maxAge?: number;
-  expires?: Date;
-  path?: string;
-  domain?: string;
-  secure?: boolean;
-  httpOnly?: boolean;
-  sameSite?: 'strict' | 'lax' | 'none';
-}
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -20,20 +8,30 @@ export async function GET(request: Request) {
   const redirectTo = requestUrl.searchParams.get('redirectTo') || '/dashboard';
 
   if (code) {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
+          async get(name: string) {
+            const cookie = cookieStore.get(name);
+            return cookie?.value;
           },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options });
+          async set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({
+              name,
+              value,
+              ...options,
+            });
           },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.delete({ name, ...options });
+          async remove(name: string, options: CookieOptions) {
+            cookieStore.set({
+              name,
+              value: '',
+              ...options,
+              maxAge: 0
+            });
           },
         },
       }
