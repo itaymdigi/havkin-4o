@@ -14,7 +14,16 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'sign_in' | 'sign_up'>('sign_in');
+
+  // Get error from URL if present
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam));
+    }
+  }, [searchParams]);
 
   // Get the redirect URL from the query parameters
   const redirectTo = searchParams.get('redirectTo') || '/dashboard';
@@ -28,14 +37,17 @@ function LoginForm() {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         setLoading(true);
-        const handleRedirect = async () => {
+        try {
           await router.push(redirectTo);
+        } catch (error) {
+          console.error('Navigation error:', error);
+          setError('Error during navigation');
+        } finally {
           setLoading(false);
-        };
-        handleRedirect();
+        }
       }
     });
 
@@ -50,6 +62,11 @@ function LoginForm() {
   return (
     <Card>
       <CardContent className="p-6 relative">
+        {error && (
+          <div className="mb-4 p-2 bg-red-100 text-red-600 rounded">
+            {error}
+          </div>
+        )}
         <div className={loading ? 'opacity-50 pointer-events-none' : ''}>
           <div className="flex justify-center space-x-4 mb-6 rtl:space-x-reverse">
             <button
