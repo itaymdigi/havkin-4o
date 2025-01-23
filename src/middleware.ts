@@ -25,10 +25,10 @@ export async function middleware(req: NextRequest) {
           get(name) {
             return req.cookies.get(name)?.value;
           },
-          set(name, value, options) {
-            res.cookies.set(name, value, options);
+          set(name, value) {
+            res.cookies.set(name, value);
           },
-          remove(name, options) {
+          remove(name) {
             res.cookies.delete(name);
           },
         },
