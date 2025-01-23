@@ -1,29 +1,45 @@
-import { createServerSupabaseClient } from "@/lib/supabase-server"
-import { NextResponse } from "next/server"
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const supabase = await createServerSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const cookieStore = cookies();
+    
+    // Create a Supabase client for the authenticated user
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
 
-    if (!user) {
-      return new NextResponse("Unauthorized", { status: 401 })
+    // Get the authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
+    // Fetch notifications for the authenticated user
+    const { data: notifications, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Error fetching notifications:", error)
-      return new NextResponse("Internal Server Error", { status: 500 })
+      console.error('Error fetching notifications:', error);
+      return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(notifications);
   } catch (error) {
-    console.error("Error in notifications route:", error)
-    return new NextResponse("Internal Server Error", { status: 500 })
+    console.error('Error in notifications API:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
@@ -14,6 +14,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [view, setView] = useState<'sign_in' | 'sign_up'>('sign_in');
 
   // Get the redirect URL from the query parameters
   const redirectTo = searchParams.get('redirectTo') || '/dashboard';
@@ -30,7 +31,6 @@ function LoginForm() {
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         setLoading(true);
-        // Use async/await instead of .then() since router.push returns void
         const handleRedirect = async () => {
           await router.push(redirectTo);
           setLoading(false);
@@ -49,44 +49,76 @@ function LoginForm() {
 
   return (
     <Card>
-      <CardContent className={`p-6 ${loading ? 'opacity-50' : ''}`}>
-        <Auth
-          supabaseClient={supabase}
-          view="sign_in"
-          appearance={{
-            theme: ThemeSupa,
-            variables: {
-              default: {
-                colors: {
-                  brand: '#000000',
-                  brandAccent: '#333333',
+      <CardContent className="p-6 relative">
+        <div className={loading ? 'opacity-50 pointer-events-none' : ''}>
+          <div className="flex justify-center space-x-4 mb-6 rtl:space-x-reverse">
+            <button
+              onClick={() => setView('sign_in')}
+              className={`px-4 py-2 ${
+                view === 'sign_in'
+                  ? 'text-black border-b-2 border-black'
+                  : 'text-gray-500'
+              }`}
+            >
+              התחברות
+            </button>
+            <button
+              onClick={() => setView('sign_up')}
+              className={`px-4 py-2 ${
+                view === 'sign_up'
+                  ? 'text-black border-b-2 border-black'
+                  : 'text-gray-500'
+              }`}
+            >
+              הרשמה
+            </button>
+          </div>
+          <Auth
+            supabaseClient={supabase}
+            view={view}
+            appearance={{
+              theme: ThemeSupa,
+              variables: {
+                default: {
+                  colors: {
+                    brand: '#000000',
+                    brandAccent: '#333333',
+                  },
                 },
               },
-            },
-            className: {
-              container: 'auth-container',
-              button: 'auth-button',
-              input: 'auth-input',
-              label: 'auth-label',
-            },
-          }}
-          theme="dark"
-          showLinks={false}
-          providers={['google']}
-          redirectTo={`${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`}
-          localization={{
-            variables: {
-              sign_in: {
-                email_label: 'אימייל',
-                password_label: 'סיסמה',
-                button_label: 'התחבר',
-                loading_button_label: 'מתחבר...',
-                social_provider_text: 'התחבר באמצעות {{provider}}',
-                link_text: 'כבר יש לך חשבון? התחבר',
+              className: {
+                container: 'auth-container',
+                button: 'auth-button',
+                input: 'auth-input',
+                label: 'auth-label',
               },
-            },
-          }}
-        />
+            }}
+            theme="dark"
+            showLinks={true}
+            providers={['google']}
+            redirectTo={`${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`}
+            localization={{
+              variables: {
+                sign_in: {
+                  email_label: 'אימייל',
+                  password_label: 'סיסמה',
+                  button_label: 'התחבר',
+                  loading_button_label: 'מתחבר...',
+                  social_provider_text: 'התחבר באמצעות {{provider}}',
+                  link_text: 'אין לך חשבון? הירשם',
+                },
+                sign_up: {
+                  email_label: 'אימייל',
+                  password_label: 'סיסמה',
+                  button_label: 'הרשמה',
+                  loading_button_label: 'נרשם...',
+                  social_provider_text: 'הירשם באמצעות {{provider}}',
+                  link_text: 'כבר יש לך חשבון? התחבר',
+                },
+              },
+            }}
+          />
+        </div>
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/5">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
@@ -101,11 +133,9 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="container mx-auto p-6">
-      <PageHeader title="התחברות למערכת" />
+      <PageHeader title="ברוכים הבאים" />
       <div className="max-w-md mx-auto">
-        <Suspense fallback={<div>Loading...</div>}>
-          <LoginForm />
-        </Suspense>
+        <LoginForm />
       </div>
     </div>
   );

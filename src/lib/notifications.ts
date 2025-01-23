@@ -1,16 +1,24 @@
 import { supabase } from "./supabase"
 import type { Notification } from "../types" // Adjust the path as necessary
 
-export async function getNotifications() {
+export async function getNotifications(): Promise<Notification[]> {
+  // Check if user is authenticated first
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return [] // Return empty array if not authenticated
+  }
+
   const response = await fetch('/api/notifications', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include', // Important for cookies
   })
   
   if (!response.ok) {
-    throw new Error('Failed to fetch notifications')
+    const error = await response.json().catch(() => ({ error: 'Failed to fetch notifications' }))
+    throw new Error(error.error || 'Failed to fetch notifications')
   }
   
   return response.json()

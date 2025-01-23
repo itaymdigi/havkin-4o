@@ -3,7 +3,14 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // List of public routes that don't require authentication
-const publicRoutes = ['/login', '/auth/callback'];
+const publicRoutes = [
+  '/login',
+  '/auth/callback',
+  '/register',
+  '/_next',
+  '/api/auth',
+  '/favicon.ico',
+];
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
@@ -15,14 +22,14 @@ export async function middleware(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          async get(name) {
+          get(name) {
             const cookie = req.cookies.get(name);
             return cookie?.value;
           },
-          async set(name, value, options) {
+          set(name, value, options) {
             res.cookies.set(name, value, options);
           },
-          async remove(name) {
+          remove(name) {
             res.cookies.delete(name);
           },
         },
@@ -30,39 +37,53 @@ export async function middleware(req: NextRequest) {
     );
 
     // Check if the route is public
-    const isPublicRoute = publicRoutes.some(route => req.nextUrl.pathname.startsWith(route));
+    const isPublicRoute = publicRoutes.some(route => 
+      req.nextUrl.pathname.startsWith(route) || 
+      req.nextUrl.pathname === '/'
+    );
 
-    // If it's a public route, allow access
+    // If it's a public route, allow access but redirect if user is already logged in
     if (isPublicRoute) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && req.nextUrl.pathname === '/login') {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
       return res;
     }
 
-    // Check auth user instead of session
+    // Check auth user
     const { data: { user }, error } = await supabase.auth.getUser();
 
     // If there's no user and the route isn't public, redirect to login
-    if (!user && !isPublicRoute) {
-      console.log('No authenticated user found, redirecting to login');
-      const redirectUrl = req.nextUrl.clone();
-      redirectUrl.pathname = '/login';
+    if (!user) {
+      const redirectUrl = new URL('/login', req.url);
       redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname);
       return NextResponse.redirect(redirectUrl);
     }
 
-    // If there is a user, add the user ID to the headers
-    if (user) {
-      res.headers.set('x-user-id', user.id);
-    }
-
-    // Allow access
+    // Add user context to headers for server components
+    res.headers.set('x-user-id', user.id);
     return res;
+
   } catch (error) {
     console.error('Middleware error:', error);
-    // On critical errors, still allow access but log the error
-    return res;
+    // On critical errors, redirect to login
+    const redirectUrl = new URL('/login', req.url);
+    return NextResponse.redirect(redirectUrl);
   }
 }
 
+// Update matcher to exclude static files and api routes
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     * - public files with extensions (.svg, .jpg, etc)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }; 
