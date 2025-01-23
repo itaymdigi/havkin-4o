@@ -11,7 +11,7 @@ export async function GET() {
       {
         cookies: {
           async get(name: string) {
-            const cookieStore = cookies();
+            const cookieStore = await cookies();
             const cookie = cookieStore.get(name);
             return cookie?.value;
           },
