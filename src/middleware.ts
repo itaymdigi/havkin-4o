@@ -52,7 +52,7 @@ export async function middleware(req: NextRequest) {
     }
 
     // Check auth user
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     // If there's no user and the route isn't public, redirect to login
     if (!user) {
