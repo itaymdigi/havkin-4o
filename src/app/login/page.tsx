@@ -96,7 +96,7 @@ function LoginForm() {
             theme="dark"
             showLinks={true}
             providers={['google']}
-            redirectTo={`${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`}
+            redirectTo={`${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`}
             localization={{
               variables: {
                 sign_in: {

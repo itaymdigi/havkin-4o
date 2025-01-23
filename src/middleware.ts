@@ -42,22 +42,31 @@ export async function middleware(req: NextRequest) {
       req.nextUrl.pathname === '/'
     );
 
-    // If it's a public route, allow access but redirect if user is already logged in
-    if (isPublicRoute) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && req.nextUrl.pathname === '/login') {
-        return NextResponse.redirect(new URL('/dashboard', req.url));
-      }
+    // Special handling for auth callback route
+    if (req.nextUrl.pathname === '/auth/callback') {
       return res;
     }
 
-    // Check auth user
+    // Get the user session
     const { data: { user } } = await supabase.auth.getUser();
+
+    // If it's the login page and user is authenticated, redirect to dashboard
+    if (req.nextUrl.pathname === '/login' && user) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+
+    // If it's a public route, allow access
+    if (isPublicRoute) {
+      return res;
+    }
 
     // If there's no user and the route isn't public, redirect to login
     if (!user) {
       const redirectUrl = new URL('/login', req.url);
-      redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname);
+      // Only add redirectTo for non-API routes
+      if (!req.nextUrl.pathname.startsWith('/api/')) {
+        redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname);
+      }
       return NextResponse.redirect(redirectUrl);
     }
 
@@ -67,9 +76,12 @@ export async function middleware(req: NextRequest) {
 
   } catch (error) {
     console.error('Middleware error:', error);
-    // On critical errors, redirect to login
-    const redirectUrl = new URL('/login', req.url);
-    return NextResponse.redirect(redirectUrl);
+    // On critical errors, redirect to login only if not already on login page
+    if (req.nextUrl.pathname !== '/login') {
+      const redirectUrl = new URL('/login', req.url);
+      return NextResponse.redirect(redirectUrl);
+    }
+    return res;
   }
 }
 
