@@ -113,7 +113,7 @@ function LoginForm() {
             theme="dark"
             showLinks={true}
             providers={['google']}
-            redirectTo={`${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`}
+            redirectTo={`${window.location.origin}/auth/callback`}
             localization={{
               variables: {
                 sign_in: {

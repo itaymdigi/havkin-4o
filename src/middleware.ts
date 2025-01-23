@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -17,21 +17,13 @@ export async function middleware(req: NextRequest) {
   
   try {
     // Create supabase server client
-    const supabase = createServerClient(
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        cookies: {
-          get(name) {
-            return req.cookies.get(name)?.value;
-          },
-          set(name, value) {
-            res.cookies.set(name, value);
-          },
-          remove(name) {
-            res.cookies.delete(name);
-          },
-        },
+        auth: {
+          persistSession: false
+        }
       }
     );
 
