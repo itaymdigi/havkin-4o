@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
@@ -135,7 +135,15 @@ export default function LoginPage() {
     <div className="container mx-auto p-6">
       <PageHeader title="ברוכים הבאים" />
       <div className="max-w-md mx-auto">
-        <LoginForm />
+        <Suspense fallback={
+          <Card>
+            <CardContent className="p-6 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+            </CardContent>
+          </Card>
+        }>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );
