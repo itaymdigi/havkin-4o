@@ -30,16 +30,26 @@ export const FilesList = forwardRef<FilesListRef>((props, ref) => {
   const fetchFiles = useCallback(async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase.storage.from('files').list()
-      if (error) throw error
-      setFiles((data || []).map(file => ({
+      
+      // Fetch files from database
+      const { data: dbFiles, error: dbError } = await supabase
+        .from('files')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (dbError) throw dbError
+
+      // Transform database files into the File interface format
+      const transformedFiles: File[] = (dbFiles || []).map(file => ({
         id: file.id,
         name: file.name,
-        path: file.name,
-        size: file.metadata?.size || 0,
-        type: file.metadata?.mimetype || 'application/octet-stream',
+        path: file.file_path,
+        size: file.size_bytes || 0,
+        type: file.file_type || 'application/octet-stream',
         created_at: file.created_at
-      })))
+      }))
+
+      setFiles(transformedFiles)
     } catch (error) {
       console.error('Error fetching files:', error)
       toast({
@@ -81,33 +91,18 @@ export const FilesList = forwardRef<FilesListRef>((props, ref) => {
 
   const handleDelete = async (file: File) => {
     try {
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('files')
-        .remove([file.path])
-
-      if (storageError) throw storageError
-
-      // Delete from database
-      const { error: dbError } = await supabase
-        .from('files')
-        .delete()
-        .eq('id', file.id)
-
-      if (dbError) throw dbError
-
-      // Update local state
+      // Only update local state
       setFiles(files.filter(f => f.id !== file.id))
 
       toast({
         title: "Success",
-        description: "File deleted successfully",
+        description: "File hidden from view",
       })
     } catch (error) {
-      console.error('Error deleting file:', error)
+      console.error('Error hiding file:', error)
       toast({
         title: "Error",
-        description: "Failed to delete file",
+        description: "Failed to hide file from view",
         variant: "destructive",
       })
     }

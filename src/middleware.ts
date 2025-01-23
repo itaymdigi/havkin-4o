@@ -37,21 +37,21 @@ export async function middleware(req: NextRequest) {
       return res;
     }
 
-    // Check auth session
-    const { data: { session } } = await supabase.auth.getSession();
+    // Check auth user instead of session
+    const { data: { user }, error } = await supabase.auth.getUser();
 
-    // If there's no session and the route isn't public, redirect to login
-    if (!session && !isPublicRoute) {
-      console.log('No session found, redirecting to login');
+    // If there's no user and the route isn't public, redirect to login
+    if (!user && !isPublicRoute) {
+      console.log('No authenticated user found, redirecting to login');
       const redirectUrl = req.nextUrl.clone();
       redirectUrl.pathname = '/login';
       redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname);
       return NextResponse.redirect(redirectUrl);
     }
 
-    // If there is a session, add the user ID to the headers
-    if (session?.user) {
-      res.headers.set('x-user-id', session.user.id);
+    // If there is a user, add the user ID to the headers
+    if (user) {
+      res.headers.set('x-user-id', user.id);
     }
 
     // Allow access
