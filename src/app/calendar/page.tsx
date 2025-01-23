@@ -123,15 +123,21 @@ export default function CalendarPage() {
 
   const handleCreateEvent = async (data: EventFormData) => {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
       
-      if (authError || !user) {
+      if (authError || !session?.user) {
         toast.error('יש להתחבר כדי ליצור אירוע');
+        router.push('/login');
         return;
       }
 
       const startDate = parse(data.start_time, 'dd/MM/yyyy HH:mm', new Date());
       const endDate = parse(data.end_time, 'dd/MM/yyyy HH:mm', new Date());
+
+      if (!startDate || !endDate) {
+        toast.error('פורמט התאריך אינו תקין');
+        return;
+      }
 
       await createCalendarEvent({
         title: data.title,
@@ -139,13 +145,13 @@ export default function CalendarPage() {
         location: data.location || '',
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
-        user_id: user.id,
+        user_id: session.user.id,
         contact_id: null
       });
 
+      await fetchEvents(); // Refresh the events list
       toast.success('האירוע נוצר בהצלחה');
       setIsNewEventDialogOpen(false);
-      router.refresh();
     } catch (error) {
       console.error('Error creating event:', error);
       toast.error('אירעה שגיאה ביצירת האירוע');

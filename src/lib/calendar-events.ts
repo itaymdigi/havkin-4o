@@ -22,19 +22,33 @@ export async function getCalendarEvents() {
 }
 
 export async function createCalendarEvent(event: Omit<CalendarEvent, "id" | "created_at" | "updated_at">) {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session }, error: authError } = await supabase.auth.getSession();
   
-  const { data, error } = await supabase
-    .from("calendar_events")
-    .insert([{ ...event, user_id: user?.id }])
-    .select()
-
-  if (error) {
-    console.error("Error creating calendar event:", error)
-    throw error
+  if (authError || !session?.user) {
+    throw new Error("User must be authenticated to create calendar events");
   }
 
-  return data[0] as CalendarEvent
+  const { data, error } = await supabase
+    .from("calendar_events")
+    .insert([{ 
+      ...event, 
+      user_id: session.user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating calendar event:", error);
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error("Failed to create calendar event");
+  }
+
+  return data as CalendarEvent;
 }
 
 export async function updateCalendarEvent(id: string, event: Partial<CalendarEvent>) {
