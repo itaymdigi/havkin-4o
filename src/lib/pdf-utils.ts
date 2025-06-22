@@ -1,40 +1,6 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { PriceOffer } from '@/types/price-offer';
-
-// Extend jsPDF type to include autoTable
-interface jsPDFWithAutoTable extends jsPDF {
-  autoTable: (options: {
-    head: string[][];
-    body: string[][];
-    startY?: number;
-    theme?: string;
-    styles?: {
-      font?: string;
-      halign?: string;
-      fontSize?: number;
-      cellPadding?: number;
-      overflow?: string;
-      minCellHeight?: number;
-    };
-    headStyles?: {
-      fillColor?: number[];
-      textColor?: number[];
-      fontStyle?: string;
-      halign?: string;
-      fontSize?: number;
-      minCellHeight?: number;
-      cellPadding?: number;
-    };
-    columnStyles?: {
-      [key: number]: { cellWidth: number | 'auto' };
-    };
-    margin?: { right: number; left: number };
-  }) => void;
-  lastAutoTable: {
-    finalY: number;
-  };
-}
 
 // Helper function to format currency
 const formatCurrency = (amount: number, currency: string) => {
@@ -59,7 +25,7 @@ const encodeHebrew = (text: string) => {
 export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
   try {
     // Create new PDF document
-    const doc = new jsPDF('p', 'mm', 'a4') as jsPDFWithAutoTable;
+    const doc = new jsPDF('p', 'mm', 'a4');
 
     // Set up document
     doc.setR2L(true);
@@ -102,7 +68,7 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
       lineHeightFactor: 1.5
     });
 
-    // Add items table
+    // Add items table using autoTable function
     const tableColumns = ['סה"כ', 'מטבע', 'מחיר ליחידה', 'כמות', 'תיאור פריט'].map(encodeHebrew);
     const tableRows = priceOffer.items.map(item => [
       formatCurrency(item.total, item.currency),
@@ -112,7 +78,7 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
       encodeHebrew(item.description),
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: 100,
       head: [tableColumns],
       body: tableRows,
@@ -125,7 +91,7 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
         minCellHeight: 10,
         cellPadding: 5
       },
-      styles: { // Changed from bodyStyles to styles
+      styles: {
         halign: 'right',
         fontSize: 10,
         cellPadding: 5,
@@ -142,7 +108,7 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
     });
 
     // Add totals section
-    const finalY = doc.lastAutoTable.finalY + 10;
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(12);
     doc.text([
       encodeHebrew(`סה"כ לפני מע"מ: ${formatCurrency(priceOffer.subtotal, 'ILS')}`),
