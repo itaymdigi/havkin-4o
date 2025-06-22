@@ -57,9 +57,9 @@ export default function WhatsAppPage() {
     <DashboardLayout>
       <div className="container mx-auto p-6" dir="rtl">
         <PageHeader 
-          title="WhatsApp Integration" 
-          description="נהל את החיבור שלך ל-WhatsApp ושלח הודעות ללקוחות"
+          title="WhatsApp Integration"
         />
+        <p className="text-muted-foreground mb-6">נהל את החיבור שלך ל-WhatsApp ושלח הודעות ללקוחות</p>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* WhatsApp Status Card */}
@@ -173,7 +173,7 @@ export default function WhatsAppPage() {
                 <div>
                   <h4 className="font-semibold">סריקת QR Code</h4>
                   <p className="text-sm text-muted-foreground">
-                    לחץ על "הצג QR Code" וסרוק את הקוד באפליקציית WhatsApp שלך
+                    לחץ על &quot;הצג QR Code&quot; וסרוק את הקוד באפליקציית WhatsApp שלך
                   </p>
                 </div>
               </div>
@@ -185,7 +185,7 @@ export default function WhatsAppPage() {
                 <div>
                   <h4 className="font-semibold">התחלת השירות</h4>
                   <p className="text-sm text-muted-foreground">
-                    לחץ על "התחל Instance" כדי להפעיל את השירות
+                    לחץ על &quot;התחל Instance&quot; כדי להפעיל את השירות
                   </p>
                 </div>
               </div>

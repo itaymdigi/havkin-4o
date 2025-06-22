@@ -143,4 +143,49 @@ export async function savePriceOfferServer(priceOffer: PriceOffer, userId: strin
     }
     throw new Error('Failed to save price offer');
   }
+}
+
+// Server-side function to get a price offer by ID
+export async function getPriceOffer(priceOfferId: string) {
+  const supabase = createServerSupabaseServiceClient();
+
+  try {
+    // Get the price offer with its items
+    const { data: offer, error: offerError } = await supabase
+      .from('price_offers')
+      .select(`
+        *,
+        price_offer_items (*)
+      `)
+      .eq('id', priceOfferId)
+      .single();
+
+    if (offerError) {
+      console.error('Error fetching price offer:', offerError);
+      return null;
+    }
+
+    if (!offer) {
+      return null;
+    }
+
+    // Transform the data to match the expected format
+    const transformedOffer = {
+      ...offer,
+      offer_number: offer.id.slice(-8).toUpperCase(), // Generate offer number from ID
+      items: offer.price_offer_items || [],
+      customer: {
+        name: offer.customer_name,
+        email: offer.customer_email,
+        phone: offer.customer_phone,
+        address: offer.customer_address,
+        company: offer.customer_company,
+      },
+    };
+
+    return transformedOffer;
+  } catch (error) {
+    console.error('Error in getPriceOffer:', error);
+    return null;
+  }
 } 

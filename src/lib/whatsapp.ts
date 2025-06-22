@@ -1,4 +1,28 @@
-import { PriceOffer } from '@/types'
+// import { PriceOffer } from '@/types/price-offer'
+
+interface PriceOfferForMessage {
+  id?: string
+  offer_number?: string
+  date?: string | Date
+  created_at?: string | Date
+  customer?: {
+    name?: string
+    phone?: string
+    email?: string
+    company?: string
+    address?: string
+  }
+  customer_name?: string
+  customer_phone?: string
+  customer_email?: string
+  customer_company?: string
+  customer_address?: string
+  subtotal?: number
+  tax?: number
+  total?: number
+  total_amount?: number
+  notes?: string
+}
 
 export interface WhatsAppContact {
   phone: string
@@ -48,24 +72,24 @@ export function formatPhoneNumber(phone: string): string {
 /**
  * Generates WhatsApp message for price offer
  */
-export function generatePriceOfferMessage(priceOffer: PriceOffer): string {
+export function generatePriceOfferMessage(priceOffer: PriceOfferForMessage): string {
   const message = `
 🧾 *הצעת מחיר חדשה*
 
-📋 *מספר הצעה:* ${priceOffer.offer_number}
-📅 *תאריך:* ${new Date(priceOffer.created_at).toLocaleDateString('he-IL')}
+📋 *מספר הצעה:* ${priceOffer.offer_number || (typeof priceOffer.id === 'string' ? priceOffer.id.slice(-8).toUpperCase() : 'N/A')}
+📅 *תאריך:* ${new Date((priceOffer.date || priceOffer.created_at || new Date()) as string | number | Date).toLocaleDateString('he-IL')}
 
 👤 *פרטי לקוח:*
-• שם: ${priceOffer.customer_name || 'לא צוין'}
-• טלפון: ${priceOffer.customer_phone || 'לא צוין'}
-• אימייל: ${priceOffer.customer_email || 'לא צוין'}
-${priceOffer.customer_company ? `• חברה: ${priceOffer.customer_company}` : ''}
-${priceOffer.customer_address ? `• כתובת: ${priceOffer.customer_address}` : ''}
+• שם: ${priceOffer.customer?.name || priceOffer.customer_name || 'לא צוין'}
+• טלפון: ${priceOffer.customer?.phone || priceOffer.customer_phone || 'לא צוין'}
+• אימייל: ${priceOffer.customer?.email || priceOffer.customer_email || 'לא צוין'}
+${priceOffer.customer?.company || priceOffer.customer_company ? `• חברה: ${priceOffer.customer?.company || priceOffer.customer_company}` : ''}
+${priceOffer.customer?.address || priceOffer.customer_address ? `• כתובת: ${priceOffer.customer?.address || priceOffer.customer_address}` : ''}
 
 💰 *סיכום כספי:*
 • סה"כ לפני מע"ם: ₪${priceOffer.subtotal?.toLocaleString('he-IL') || '0'}
-• מע"ם (${priceOffer.tax_rate || 17}%): ₪${priceOffer.tax_amount?.toLocaleString('he-IL') || '0'}
-• *סה"כ כולל מע"ם: ₪${priceOffer.total?.toLocaleString('he-IL') || '0'}*
+• מע"ם (18%): ₪${priceOffer.tax?.toLocaleString('he-IL') || '0'}
+• *סה"כ כולל מע"ם: ₪${priceOffer.total?.toLocaleString('he-IL') || priceOffer.total_amount?.toLocaleString('he-IL') || '0'}*
 
 📝 *הערות:*
 ${priceOffer.notes || 'אין הערות נוספות'}

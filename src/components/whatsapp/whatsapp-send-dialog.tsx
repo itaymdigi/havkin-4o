@@ -58,7 +58,7 @@ export function WhatsAppSendDialog({
 
     try {
       let endpoint = '/api/whatsapp/send-message'
-      let body: any = {
+      let body: Record<string, unknown> = {
         to: phone,
         message,
         type: 'user',

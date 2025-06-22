@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     let endpoint = ''
-    let requestBody = { token, instanceID }
+    const requestBody = { token, instanceID }
 
     switch (action) {
       case 'start':

@@ -90,8 +90,12 @@ export async function POST(request: NextRequest) {
     // Send PDF file if requested
     if (includeFile) {
       try {
-        // Generate PDF
-        const pdfBlob = await generatePriceOfferPDF(priceOffer)
+        // Generate PDF (returns a blob URL)
+        const pdfBlobUrl = generatePriceOfferPDF(priceOffer)
+        
+        // Fetch the blob from the URL
+        const response = await fetch(pdfBlobUrl)
+        const pdfBlob = await response.blob()
         
         // Convert blob to base64
         const arrayBuffer = await pdfBlob.arrayBuffer()
