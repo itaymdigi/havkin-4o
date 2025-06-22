@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus, Pencil, Trash2, MessageSquare } from "lucide-react"
+import { WhatsAppSendDialog } from "@/components/whatsapp/whatsapp-send-dialog"
 import { getContacts, deleteContact } from "@/lib/contacts"
 import { getCompanies } from "@/lib/companies"
 import type { Contact, Company } from "@/types"
@@ -31,6 +32,8 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [companyFilter, setCompanyFilter] = useState<string>("all")
+  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false)
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
 
   useEffect(() => {
     loadData()
@@ -60,6 +63,11 @@ export default function ContactsPage() {
         console.error("Failed to delete contact:", error)
       }
     }
+  }
+
+  function handleWhatsAppSend(contact: Contact) {
+    setSelectedContact(contact)
+    setShowWhatsAppDialog(true)
   }
 
   // Filter contacts based on search query and company
@@ -132,7 +140,7 @@ export default function ContactsPage() {
                 <TableHead>Position</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead className="w-[150px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -161,6 +169,17 @@ export default function ContactsPage() {
                     <TableCell>{contact.email || "-"}</TableCell>
                     <TableCell>{contact.phone || "-"}</TableCell>
                     <TableCell className="flex gap-2">
+                      {contact.phone && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleWhatsAppSend(contact)}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          title="Send WhatsApp message"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                      )}
                       <ContactFormDialog
                         contact={contact}
                         trigger={
@@ -184,6 +203,14 @@ export default function ContactsPage() {
             </TableBody>
           </Table>
         </div>
+
+        {/* WhatsApp Send Dialog */}
+        <WhatsAppSendDialog
+          open={showWhatsAppDialog}
+          onOpenChange={setShowWhatsAppDialog}
+          defaultPhone={selectedContact?.phone || ''}
+          defaultMessage={`שלום ${selectedContact?.first_name || ''}! 👋`}
+        />
       </div>
     </DashboardLayout>
   )

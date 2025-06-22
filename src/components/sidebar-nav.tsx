@@ -11,7 +11,8 @@ import {
   FileText,
   Upload,
   Bell,
-  Settings
+  Settings,
+  MessageSquare
 } from "lucide-react"
 
 const navigation = [
@@ -20,6 +21,7 @@ const navigation = [
   { name: "Companies", href: "/companies", icon: Building2 },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Price Offers", href: "/price-offers", icon: FileText },
+  { name: "WhatsApp", href: "/whatsapp", icon: MessageSquare },
   { name: "Files", href: "/files", icon: Upload },
   { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Settings", href: "/settings", icon: Settings },

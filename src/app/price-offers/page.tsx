@@ -18,6 +18,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import { useAuth } from '@/hooks/use-auth';
 import { generatePriceOfferPDF } from '@/lib/pdf-utils';
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { WhatsAppSendDialog } from '@/components/whatsapp/whatsapp-send-dialog';
+import { MessageSquare } from 'lucide-react';
 
 // Validation schema
 const priceOfferSchema = z.object({
@@ -46,6 +48,8 @@ export default function PriceOffersPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [items, setItems] = useState<PriceOfferItem[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const [lastCreatedOfferId, setLastCreatedOfferId] = useState<string | null>(null);
+  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
 
   const form = useForm<z.infer<typeof priceOfferSchema>>({
     resolver: zodResolver(priceOfferSchema),
@@ -185,14 +189,15 @@ export default function PriceOffersPage() {
           throw new Error(errorData.error || 'Failed to save price offer');
         }
 
-        await response.json(); // Parse response but don't store in unused variable
+        const responseData = await response.json();
+        setLastCreatedOfferId(responseData.data.id); // Store the created offer ID
         toast.success('הצעת המחיר נשמרה בהצלחה');
         
-                  // Generate PDF using our new client-side function
-          const pdfUrl = generatePriceOfferPDF(priceOffer);
-          
-          // Open PDF in new tab
-          window.open(pdfUrl, '_blank');
+        // Generate PDF using our new client-side function
+        const pdfUrl = generatePriceOfferPDF(priceOffer);
+        
+        // Open PDF in new tab
+        window.open(pdfUrl, '_blank');
         toast.success('ה-PDF נוצר בהצלחה');
         
         // Reset form for new price offer
@@ -557,6 +562,19 @@ export default function PriceOffersPage() {
                   >
                     ביטול
                   </Button>
+                  
+                  {lastCreatedOfferId && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowWhatsAppDialog(true)}
+                      className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      שלח ב-WhatsApp
+                    </Button>
+                  )}
+                  
                   <Button 
                     type="submit"
                     disabled={isGenerating || !form.formState.isValid}
@@ -575,6 +593,14 @@ export default function PriceOffersPage() {
             </Form>
           </CardContent>
         </Card>
+        
+        {/* WhatsApp Send Dialog */}
+        <WhatsAppSendDialog
+          open={showWhatsAppDialog}
+          onOpenChange={setShowWhatsAppDialog}
+          priceOfferId={lastCreatedOfferId || undefined}
+          defaultPhone={form.getValues('customer.phone')}
+        />
       </div>
     </DashboardLayout>
   );
