@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { useUser } from "@clerk/nextjs"
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ export function CompanyFormDialog({
 }: CompanyFormDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const { user } = useUser()
 
   const form = useForm<CompanyFormValues>({
     resolver: zodResolver(companySchema),
@@ -60,6 +62,11 @@ export function CompanyFormDialog({
   })
 
   async function onSubmit(data: CompanyFormValues) {
+    if (!user) {
+      console.error("User not authenticated")
+      return
+    }
+
     try {
       setLoading(true)
       if (company) {
@@ -67,12 +74,11 @@ export function CompanyFormDialog({
       } else {
         await createCompany({ 
           ...data, 
-          user_id: "some_user_id",
           industry: data.industry ?? null,
           website: data.website ?? null,
           address: data.address ?? null,
           phone: data.phone ?? null
-        })
+        } as Omit<Company, "id" | "created_at" | "updated_at">)
       }
       setOpen(false)
       onSuccess()
@@ -167,7 +173,7 @@ export function CompanyFormDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !user}>
                 {loading ? "Saving..." : "Save"}
               </Button>
             </div>

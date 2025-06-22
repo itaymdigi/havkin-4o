@@ -1,63 +1,57 @@
-import { supabase } from "./supabase"
 import type { Company } from "@/types"
 
-export async function getCompanies() {
-  const { data, error } = await supabase
-    .from("companies")
-    .select("*")
-    .order("name", { ascending: true })
-
-  if (error) {
-    console.error("Error fetching companies:", error)
-    throw error
-  }
-
-  return data as Company[]
-}
-
-export async function createCompany(company: Omit<Company, "id" | "created_at" | "updated_at">) {
-  const { data: { user } } = await supabase.auth.getUser()
+export async function getCompanies(): Promise<Company[]> {
+  const response = await fetch('/api/companies')
   
-  if (!user) {
-    throw new Error("User must be authenticated to create companies")
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to fetch companies')
   }
-
-  const { data, error } = await supabase
-    .from("companies")
-    .insert([{ ...company, user_id: user.id }])
-    .select()
-
-  if (error) {
-    console.error("Error creating company:", error)
-    throw error
-  }
-
-  return data[0] as Company
+  
+  return response.json()
 }
 
-export async function updateCompany(id: string, company: Partial<Company>) {
-  const { data, error } = await supabase
-    .from("companies")
-    .update(company)
-    .eq("id", id)
-    .select()
-
-  if (error) {
-    console.error("Error updating company:", error)
-    throw error
+export async function createCompany(company: Omit<Company, "id" | "created_at" | "updated_at">): Promise<Company> {
+  const response = await fetch('/api/companies', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(company),
+  })
+  
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to create company')
   }
-
-  return data[0] as Company
+  
+  return response.json()
 }
 
-export async function deleteCompany(id: string) {
-  const { error } = await supabase
-    .from("companies")
-    .delete()
-    .eq("id", id)
+export async function updateCompany(id: string, company: Partial<Company>): Promise<Company> {
+  const response = await fetch(`/api/companies/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(company),
+  })
+  
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to update company')
+  }
+  
+  return response.json()
+}
 
-  if (error) {
-    console.error("Error deleting company:", error)
-    throw error
+export async function deleteCompany(id: string): Promise<void> {
+  const response = await fetch(`/api/companies/${id}`, {
+    method: 'DELETE',
+  })
+  
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to delete company')
   }
 } 

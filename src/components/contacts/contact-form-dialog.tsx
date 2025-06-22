@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { useUser } from "@clerk/nextjs"
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,7 @@ export function ContactFormDialog({
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [companies, setCompanies] = useState<Company[]>([])
+  const { user } = useUser()
 
   useEffect(() => {
     async function loadCompanies() {
@@ -83,6 +85,11 @@ export function ContactFormDialog({
   })
 
   async function onSubmit(data: ContactFormValues) {
+    if (!user) {
+      console.error("User not authenticated")
+      return
+    }
+
     try {
       setLoading(true)
       if (contact) {
@@ -90,12 +97,11 @@ export function ContactFormDialog({
       } else {
         await createContact({
           ...data,
-          user_id: "some_user_id",
           email: data.email ?? null,
           phone: data.phone ?? null,
           position: data.position ?? null,
           company_id: data.company_id ?? null,
-        })
+        } as Omit<Contact, "id" | "created_at" | "updated_at">)
       }
       setOpen(false)
       onSuccess()
