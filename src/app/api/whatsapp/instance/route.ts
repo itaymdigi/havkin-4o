@@ -23,14 +23,48 @@ export async function GET() {
       )
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        configured: true,
-        instanceID,
-        // Don't expose the token in the response
-      },
-    })
+    // Check instance status
+    try {
+      const statusResponse = await fetch('https://wapulse.com/api/getInstanceStatus', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          instanceID,
+        }),
+      })
+
+      let statusResult = null
+      if (statusResponse.ok) {
+        statusResult = await statusResponse.json()
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          configured: true,
+          instanceID,
+          status: statusResult?.status || 'unknown',
+          statusDetails: statusResult,
+          lastChecked: new Date().toISOString(),
+          // Don't expose the token in the response
+        },
+      })
+    } catch (statusError) {
+      console.error('Error checking instance status:', statusError)
+      return NextResponse.json({
+        success: true,
+        data: {
+          configured: true,
+          instanceID,
+          status: 'error',
+          error: 'Could not check instance status',
+          // Don't expose the token in the response
+        },
+      })
+    }
 
   } catch (error) {
     console.error('Error getting WhatsApp instance info:', error)
@@ -79,12 +113,17 @@ export async function POST(request: NextRequest) {
       case 'qr':
         endpoint = 'https://wapulse.com/api/getQrCode'
         break
+      case 'status':
+        endpoint = 'https://wapulse.com/api/getInstanceStatus'
+        break
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Use: start, stop, or qr' },
+          { error: 'Invalid action. Use: start, stop, qr, or status' },
           { status: 400 }
         )
     }
+
+    console.log(`Performing WhatsApp ${action} action for instance ${instanceID}`)
 
     // Call WaPulse API
     const response = await fetch(endpoint, {
@@ -95,15 +134,35 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(requestBody),
     })
 
-    const result = await response.json()
+    let result
+    try {
+      const responseText = await response.text()
+      result = JSON.parse(responseText)
+    } catch (parseError) {
+      console.error('Failed to parse WaPulse API response:', parseError)
+      return NextResponse.json(
+        { error: 'Invalid response from WhatsApp service' },
+        { status: 502 }
+      )
+    }
 
     if (!response.ok) {
-      console.error('WaPulse API error:', result)
+      console.error('WaPulse API error:', {
+        action,
+        status: response.status,
+        result
+      })
       return NextResponse.json(
-        { error: result.message || `Failed to ${action} WhatsApp instance` },
+        { 
+          error: result.message || `Failed to ${action} WhatsApp instance`,
+          details: result,
+          action
+        },
         { status: response.status }
       )
     }
+
+    console.log(`WhatsApp ${action} completed successfully:`, result)
 
     return NextResponse.json({
       success: true,
