@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
       try {
         result = JSON.parse(responseText)
-      } catch (parseError) {
+      } catch {
         console.error('Failed to parse WaPulse API response:', responseText)
         return NextResponse.json(
           { 
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       
       // Handle specific error cases
       let errorMessage = result?.message || result?.error || 'Failed to send WhatsApp message'
-      let statusCode = response.status
+      const statusCode = response.status
       
       if (response.status === 401) {
         errorMessage = 'Invalid WhatsApp API credentials. Please check your token and instance ID.'

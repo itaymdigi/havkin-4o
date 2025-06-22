@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,9 +14,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from 'sonner'
 import { validatePhoneNumber } from '@/lib/whatsapp'
-import { MessageSquare, FileText, Loader2 } from 'lucide-react'
+import { MessageSquare, FileText, Loader2, AlertCircle, Phone } from 'lucide-react'
 
 interface WhatsAppSendDialogProps {
   open: boolean
@@ -37,20 +38,39 @@ export function WhatsAppSendDialog({
   const [message, setMessage] = useState(defaultMessage)
   const [includeFile, setIncludeFile] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
+
+  // Update form when default values change
+  useEffect(() => {
+    setPhone(defaultPhone)
+    setMessage(defaultMessage)
+  }, [defaultPhone, defaultMessage])
+
+  // Validate phone number on change
+  useEffect(() => {
+    if (phone.trim() && !validatePhoneNumber(phone)) {
+      setPhoneError('מספר טלפון לא תקין. השתמש בפורמט: 972512345678')
+    } else {
+      setPhoneError(null)
+    }
+  }, [phone])
 
   const handleSend = async () => {
+    setError(null)
+
     if (!phone.trim()) {
-      toast.error('נא להזין מספר טלפון')
+      setPhoneError('נא להזין מספר טלפון')
       return
     }
 
     if (!validatePhoneNumber(phone)) {
-      toast.error('מספר טלפון לא תקין. השתמש בפורמט: 972512345678')
+      setPhoneError('מספר טלפון לא תקין. השתמש בפורמט: 972512345678')
       return
     }
 
     if (!message.trim() && !priceOfferId) {
-      toast.error('נא להזין הודעה')
+      setError('נא להזין הודעה')
       return
     }
 
@@ -86,7 +106,7 @@ export function WhatsAppSendDialog({
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'שליחת ההודעה נכשלה')
+        throw new Error(result.error || result.message || 'שליחת ההודעה נכשלה')
       }
 
       toast.success('ההודעה נשלחה בהצלחה ב-WhatsApp!')
@@ -95,48 +115,73 @@ export function WhatsAppSendDialog({
       setPhone('')
       setMessage('')
       setIncludeFile(true)
+      setError(null)
+      setPhoneError(null)
       onOpenChange(false)
 
     } catch (error) {
       console.error('Error sending WhatsApp message:', error)
-      toast.error(error instanceof Error ? error.message : 'שגיאה בשליחת ההודעה')
+      const errorMessage = error instanceof Error ? error.message : 'שגיאה בשליחת ההודעה'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^\d]/g, '') // Only allow digits
+    setPhone(value)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]" dir="rtl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-right">
             <MessageSquare className="h-5 w-5 text-green-600" />
             שליחה ב-WhatsApp
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-right">
             {priceOfferId
               ? 'שלח הצעת מחיר ללקוח דרך WhatsApp'
               : 'שלח הודעה ללקוח דרך WhatsApp'}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="phone">מספר טלפון</Label>
-            <Input
-              id="phone"
-              placeholder="972512345678"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              dir="ltr"
-            />
-            <p className="text-xs text-muted-foreground">
-              הזן מספר טלפון עם קוד מדינה (ללא + או רווחים)
-            </p>
+        <div className="grid gap-6 py-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid gap-3">
+            <Label htmlFor="phone" className="text-right">מספר טלפון</Label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="phone"
+                placeholder="972512345678"
+                value={phone}
+                onChange={handlePhoneChange}
+                className={`pl-10 text-left font-mono ${phoneError ? 'border-destructive' : ''}`}
+                dir="ltr"
+                maxLength={15}
+              />
+            </div>
+            {phoneError ? (
+              <p className="text-sm text-destructive text-right">{phoneError}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground text-right">
+                הזן מספר טלפון עם קוד מדינה (ללא + או רווחים)
+              </p>
+            )}
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="message">הודעה</Label>
+          <div className="grid gap-3">
+            <Label htmlFor="message" className="text-right">הודעה</Label>
             <Textarea
               id="message"
               placeholder={
@@ -147,15 +192,20 @@ export function WhatsAppSendDialog({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
+              className="resize-none"
+              dir="rtl"
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {message.length}/1000 תווים
+            </p>
           </div>
 
           {priceOfferId && (
-            <div className="flex items-center justify-between">
-              <div className="grid gap-1">
-                <Label htmlFor="include-file">צרף קובץ PDF</Label>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+              <div className="grid gap-1 text-right">
+                <Label htmlFor="include-file" className="text-sm font-medium">צרף קובץ PDF</Label>
                 <p className="text-xs text-muted-foreground">
-                  צרף את הצעת המחיר כקובץ PDF
+                  צרף את הצעת המחיר כקובץ PDF להודעה
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -170,27 +220,28 @@ export function WhatsAppSendDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex gap-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isLoading}
+            className="flex-1"
           >
             ביטול
           </Button>
           <Button
             onClick={handleSend}
-            disabled={isLoading}
-            className="bg-green-600 hover:bg-green-700"
+            disabled={isLoading || !!phoneError || !phone.trim()}
+            className="bg-green-600 hover:bg-green-700 flex-1"
           >
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 שולח...
               </>
             ) : (
               <>
-                <MessageSquare className="mr-2 h-4 w-4" />
+                <MessageSquare className="ml-2 h-4 w-4" />
                 שלח
               </>
             )}
