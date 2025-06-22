@@ -6,7 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "biome check .",
+    "biome:check": "biome check .",
+    "biome:check:write": "biome check --write .",
+    "biome:check:unsafe": "biome check --write --unsafe .",
+    "biome:lint": "biome lint .",
+    "biome:lint:write": "biome lint --write .",
+    "biome:format": "biome format .",
+    "biome:format:write": "biome format --write .",
+    "biome:changed": "biome check --changed",
+    "biome:staged": "biome check --staged",
+    "format": "biome check --write .",
+    "format:check": "biome check .",
+    "prepare": "husky"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -74,12 +86,14 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.0.4",
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "eslint": "^9",
     "eslint-config-next": "15.1.4",
+    "husky": "^9.1.7",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
