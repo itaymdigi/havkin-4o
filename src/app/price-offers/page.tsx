@@ -188,11 +188,11 @@ export default function PriceOffersPage() {
         await response.json(); // Parse response but don't store in unused variable
         toast.success('הצעת המחיר נשמרה בהצלחה');
         
-        // Generate PDF using our new client-side function
-        const pdfUrl = generatePriceOfferPDF(priceOffer);
-        
-        // Open PDF in new tab
-        window.open(pdfUrl, '_blank');
+                  // Generate PDF using our new client-side function
+          const pdfUrl = generatePriceOfferPDF(priceOffer);
+          
+          // Open PDF in new tab
+          window.open(pdfUrl, '_blank');
         toast.success('ה-PDF נוצר בהצלחה');
         
         // Reset form for new price offer
