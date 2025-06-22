@@ -12,6 +12,8 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import { NotificationsProvider } from "@/components/providers/notifications-provider";
+// Import stagewise toolbar wrapper component
+import { StagewiseToolbarWrapper } from "@/components/stagewise-toolbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,7 +35,10 @@ export default function RootLayout({
             "min-h-screen bg-background font-sans antialiased",
             inter.className
           )}
+          suppressHydrationWarning
         >
+          {/* Stagewise Toolbar - only in development, client-side only */}
+          <StagewiseToolbarWrapper />
           <NotificationsProvider>
             <div className="relative flex min-h-screen flex-col">
               {/* Authentication Header */}

@@ -16,8 +16,12 @@ export async function GET(request: Request) {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   
   if (!apiKey) {
-    console.error('Server-side Google Maps API key is missing');
-    return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
+    console.error('GOOGLE_MAPS_API_KEY environment variable is missing');
+    console.error('Please add GOOGLE_MAPS_API_KEY to your environment variables');
+    return NextResponse.json({ 
+      error: 'Google Maps API key not configured. Please contact administrator.',
+      details: 'GOOGLE_MAPS_API_KEY environment variable is missing'
+    }, { status: 500 });
   }
 
   try {

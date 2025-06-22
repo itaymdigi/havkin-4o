@@ -16,8 +16,7 @@ import { PriceOffer, PriceOfferItem } from '@/types/price-offer';
 import { savePriceOffer } from '@/lib/price-offers';
 import { Trash2, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
-import { useUser } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/use-auth';
 import { generatePriceOfferPDF } from '@/lib/pdf-utils';
 import { DashboardLayout } from "@/components/dashboard-layout";
 
@@ -44,7 +43,7 @@ const priceOfferSchema = z.object({
 
 export default function PriceOffersPage() {
   const router = useRouter();
-  const { user, loading: isLoading } = useUser();
+  const { user, isLoading, userId } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [items, setItems] = useState<PriceOfferItem[]>([]);
   const [isClient, setIsClient] = useState(false);
@@ -70,19 +69,12 @@ export default function PriceOffersPage() {
     setIsClient(true);
   }, []);
 
-  // Handle auth state
+  // Handle auth state - redirect to login if not authenticated
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session && !isLoading) {
-        router.replace('/login?redirectTo=/price-offers');
-      }
-    };
-
-    if (isClient) {
-      checkAuth();
+    if (isClient && !isLoading && !user) {
+      router.replace('/login?redirectTo=/price-offers');
     }
-  }, [isClient, isLoading, router]);
+  }, [isClient, isLoading, user, router]);
 
   // Update form items when items state changes
   useEffect(() => {
@@ -146,7 +138,7 @@ export default function PriceOffersPage() {
   // Add form submission handler
   const onSubmit = form.handleSubmit(async (formData) => {
     try {
-      if (!user?.id) {
+      if (!userId) {
         toast.error('יש להתחבר למערכת');
         router.push('/login');
         return;
@@ -181,7 +173,7 @@ export default function PriceOffersPage() {
 
       try {
         // First save the price offer to the database
-        await savePriceOffer(priceOffer, user.id);
+        await savePriceOffer(priceOffer, userId);
         toast.success('הצעת המחיר נשמרה בהצלחה');
         
         // Generate PDF using our new client-side function
@@ -191,10 +183,9 @@ export default function PriceOffersPage() {
         window.open(pdfUrl, '_blank');
         toast.success('ה-PDF נוצר בהצלחה');
         
-        // Small delay before redirect
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 2000);
+        // Reset form for new price offer
+        form.reset();
+        setItems([]);
         
       } catch (error) {
         console.error('Error in save/generate process:', error);

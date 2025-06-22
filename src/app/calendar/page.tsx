@@ -12,12 +12,11 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './styles.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { createCalendarEvent } from '@/lib/calendar-events';
+import { createCalendarEvent, getCalendarEvents } from '@/lib/calendar-events';
 import { NewEventForm } from './components/new-event-form';
 import { DashboardLayout } from "@/components/dashboard-layout";
 
@@ -74,25 +73,17 @@ export default function CalendarPage() {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: supabaseError } = await supabase
-        .from('calendar_events')
-        .select('*');
+      const data = await getCalendarEvents();
 
-      if (supabaseError) {
-        throw supabaseError;
-      }
-
-      if (data) {
-        const formattedEvents: CalendarEvent[] = data.map(event => ({
-          id: event.id,
-          title: event.title,
-          start: new Date(event.start_time),
-          end: new Date(event.end_time),
-          description: event.description,
-          location: event.location,
-        }));
-        setEvents(formattedEvents);
-      }
+      const formattedEvents: CalendarEvent[] = data.map(event => ({
+        id: event.id,
+        title: event.title,
+        start: new Date(event.start_time),
+        end: new Date(event.end_time),
+        description: event.description || undefined,
+        location: event.location || undefined,
+      }));
+      setEvents(formattedEvents);
     } catch (err) {
       console.error('Error fetching events:', err);
       setError('אירעה שגיאה בטעינת האירועים');
@@ -123,14 +114,6 @@ export default function CalendarPage() {
 
   const handleCreateEvent = async (data: EventFormData) => {
     try {
-      const { data: { session }, error: authError } = await supabase.auth.getSession();
-      
-      if (authError || !session?.user) {
-        toast.error('יש להתחבר כדי ליצור אירוע');
-        router.push('/login');
-        return;
-      }
-
       const startDate = parse(data.start_time, 'dd/MM/yyyy HH:mm', new Date());
       const endDate = parse(data.end_time, 'dd/MM/yyyy HH:mm', new Date());
 
@@ -145,7 +128,7 @@ export default function CalendarPage() {
         location: data.location || '',
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
-        user_id: session.user.id,
+        user_id: null, // This will be set by the API
         contact_id: null
       });
 

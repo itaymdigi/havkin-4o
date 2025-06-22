@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/use-auth';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -44,6 +44,7 @@ export default function EventDetailsPage() {
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
+  const { user, isLoading: authLoading, userId } = useAuth();
   const [event, setEvent] = useState<EventDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -52,38 +53,35 @@ export default function EventDetailsPage() {
     const fetchEventDetails = async () => {
       try {
         setIsLoading(true);
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
         
-        if (authError || !user) {
+        if (authLoading) return; // Wait for auth to load
+        
+        if (!user || !userId) {
           toast.error('יש להתחבר כדי לצפות באירוע');
           router.push('/login');
           return;
         }
 
-        const { data, error } = await supabase
-          .from('calendar_events')
-          .select('id, title, description, location, start_time, end_time, created_at, user_id, contact_id')
-          .eq('id', id)
-          .eq('user_id', user.id)
-          .single();
-
-        if (error) {
-          if (error.code === 'PGRST116') {
+        // Use fetch to call our API route
+        const response = await fetch(`/api/calendar-events/${id}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
             toast.error('האירוע לא נמצא');
             router.push('/calendar');
             return;
           }
-          throw error;
+          throw new Error('Failed to fetch event');
         }
 
-        if (data) {
-          setEvent({
-            ...data,
-            description: data.description || undefined,
-            location: data.location || undefined,
-            contact_id: data.contact_id || null,
-          } as EventDetails);
-        }
+        const data = await response.json();
+
+        setEvent({
+          ...data,
+          description: data.description || undefined,
+          location: data.location || undefined,
+          contact_id: data.contact_id || null,
+        } as EventDetails);
       } catch (error: unknown) {
         const err = error as Error | SupabaseError;
         console.error('Error fetching event details:', err);
@@ -94,24 +92,22 @@ export default function EventDetailsPage() {
     };
 
     fetchEventDetails();
-  }, [id, router]);
+  }, [id, router, user, userId, authLoading]);
 
   const handleDelete = async () => {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
+      if (!user || !userId) {
         toast.error('יש להתחבר כדי למחוק אירוע');
         return;
       }
 
-      const { error } = await supabase
-        .from('calendar_events')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      const response = await fetch(`/api/calendar-events/${id}`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to delete event');
+      }
 
       toast.success('האירוע נמחק בהצלחה');
       router.push('/calendar');

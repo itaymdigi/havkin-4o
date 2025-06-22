@@ -5,7 +5,6 @@ import { FileText, Trash2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
-import { supabase } from "@/lib/supabase"
 import { formatBytes } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 
@@ -15,6 +14,15 @@ interface File {
   path: string
   size: number
   type: string
+  created_at: string
+}
+
+interface DatabaseFile {
+  id: string
+  name: string
+  file_path: string
+  size_bytes?: number
+  file_type?: string
   created_at: string
 }
 
@@ -31,16 +39,17 @@ export const FilesList = forwardRef<FilesListRef>((props, ref) => {
     try {
       setLoading(true)
       
-      // Fetch files from database
-      const { data: dbFiles, error: dbError } = await supabase
-        .from('files')
-        .select('*')
-        .order('created_at', { ascending: false })
+      // Fetch files from API
+      const response = await fetch('/api/files')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch files')
+      }
 
-      if (dbError) throw dbError
+      const dbFiles = await response.json()
 
       // Transform database files into the File interface format
-      const transformedFiles: File[] = (dbFiles || []).map(file => ({
+      const transformedFiles: File[] = (dbFiles || []).map((file: DatabaseFile) => ({
         id: file.id,
         name: file.name,
         path: file.file_path,
@@ -64,14 +73,17 @@ export const FilesList = forwardRef<FilesListRef>((props, ref) => {
 
   const handleDownload = async (file: File) => {
     try {
-      const { data, error } = await supabase.storage
-        .from('files')
-        .download(file.path)
+      const response = await fetch(`/api/files/${file.id}/download`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to download file')
+      }
 
-      if (error) throw error
-
+      // Get the file blob
+      const blob = await response.blob()
+      
       // Create a download link
-      const url = window.URL.createObjectURL(data)
+      const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
       link.download = file.name
