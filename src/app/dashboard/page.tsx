@@ -289,135 +289,219 @@ export default async function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-8 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground mt-2">
+              Overview of your business performance and activities
+            </p>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Last updated: {new Date().toLocaleDateString()}
+          </div>
+        </div>
+
         {/* Stats Overview */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          {stats.map((stat) => (
-            <Card key={stat.name}>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+          {stats.map((stat, index) => (
+            <Card key={stat.name} className="relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-sm font-medium text-card-foreground">
                   {stat.name}
                 </CardTitle>
-                <stat.icon className="h-4 w-4 text-muted-foreground" />
+                <div className={`p-2 rounded-lg ${index === 0 ? 'bg-primary/10' : 'bg-muted/50'}`}>
+                  <stat.icon className={`h-4 w-4 ${index === 0 ? 'text-primary' : 'text-muted-foreground'}`} />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-3xl font-bold text-foreground">{stat.value.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">
                   {stat.description}
                 </p>
               </CardContent>
+              {index === 0 && (
+                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary/20 to-transparent rounded-bl-3xl" />
+              )}
             </Card>
           ))}
         </div>
 
-        {/* Sales Overview Section */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
+        {/* Revenue Overview */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2 border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
               <div>
-                <CardTitle className="text-xl font-semibold">Sales Overview</CardTitle>
+                <CardTitle className="text-xl font-semibold text-foreground">Total Revenue</CardTitle>
+                <div className="flex items-baseline mt-2">
+                  <span className="text-3xl font-bold text-foreground">{formatCurrency(yearlyTotal)}</span>
+                  <span className={`ml-2 text-sm flex items-center ${yearChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <ArrowUpRight className={`h-4 w-4 mr-1 ${yearChange < 0 ? 'rotate-45' : ''}`} />
+                    {yearChange >= 0 ? '+' : ''}{yearChange.toFixed(1)}% from last month
+                  </span>
+                </div>
               </div>
-              <select className="rounded-md border px-3 py-1 text-sm">
+              <select className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground">
                 <option>{format(new Date(), 'MMMM yyyy')}</option>
               </select>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
+              <div className="h-[300px] chart-container">
                 <BarChart data={salesData} />
               </div>
             </CardContent>
           </Card>
 
-          {/* Yearly and Monthly Stats */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-medium">Yearly Breakup</h3>
-                  <div className="mt-2 flex items-baseline">
-                    <span className="text-3xl font-bold">{formatCurrency(yearlyTotal)}</span>
-                    <span className={`ml-2 text-sm ${yearChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      <ArrowUpRight className={`inline h-4 w-4 ${yearChange < 0 ? 'rotate-45' : ''}`} />
-                      {yearChange >= 0 ? '+' : ''}{yearChange.toFixed(1)}% last year
-                    </span>
-                  </div>
-                </div>
-                <div className="h-[100px]">
-                  <LineChart />
-                </div>
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-foreground">Subscriptions</CardTitle>
+              <div className="flex items-baseline">
+                <span className="text-3xl font-bold text-primary">+{(monthlyTotal / 1000).toFixed(1)}K</span>
+                <span className="ml-2 text-sm text-green-400 flex items-center">
+                  <ArrowUpRight className="h-4 w-4 mr-1" />
+                  +{Math.abs(monthChange).toFixed(1)}% from last month
+                </span>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div>
-                <h3 className="text-lg font-medium">Monthly Earnings</h3>
-                <div className="mt-2 flex items-baseline">
-                  <span className="text-3xl font-bold">{formatCurrency(monthlyTotal)}</span>
-                  <span className={`ml-2 text-sm ${monthChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    <ArrowUpRight className={`inline h-4 w-4 ${monthChange < 0 ? 'rotate-45' : ''}`} />
-                    {monthChange >= 0 ? '+' : ''}{monthChange.toFixed(1)}% last month
-                  </span>
-                </div>
-                <div className="h-[100px] mt-4">
-                  <LineChart />
-                </div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[200px]">
+                <LineChart />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Transactions and Product Performance */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Transactions</CardTitle>
+        {/* Action Cards and Team Members */}
+        <div className="grid gap-6 lg:grid-cols-4">
+          {/* Upgrade Plan Card */}
+          <Card className="lg:col-span-2 border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-foreground">Upgrade your subscription</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                You are currently on the free plan. Upgrade to the pro plan to get access to all features.
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {upcomingEvents.slice(0, 5).map((event) => (
-                  <div key={event.id} className="flex items-center gap-4">
-                    <div className="h-2 w-2 rounded-full bg-blue-500" />
-                    <div className="flex-1">
-                      <p className="font-medium">{event.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDateTime(new Date(event.start_time))}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {upcomingEvents.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No upcoming events scheduled.</p>
-                )}
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="Evil Rabbit" 
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Email</label>
+                  <input 
+                    type="email" 
+                    placeholder="example@acme.com" 
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Card Number</label>
+                <input 
+                  type="text" 
+                  placeholder="1234 1234 1234 1234" 
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+              <div className="flex gap-4">
+                <button className="flex-1 rounded-lg bg-muted px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/80">
+                  Cancel
+                </button>
+                <button className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                  Upgrade Plan
+                </button>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Stats</CardTitle>
+          {/* Create Account Card */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-foreground">Create an account</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Enter your email below to create your account
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Contacts</p>
-                    <p className="text-2xl font-bold">{totalContacts}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Companies</p>
-                    <p className="text-2xl font-bold">{totalCompanies}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Upcoming Events</p>
-                    <p className="text-2xl font-bold">{upcomingEvents.length}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Monthly Sales</p>
-                    <p className="text-2xl font-bold">{formatCurrency(monthlyTotal)}</p>
-                  </div>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <button className="flex items-center justify-center rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted">
+                  GitHub
+                </button>
+                <button className="flex items-center justify-center rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                  Google
+                </button>
+              </div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
                 </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">OR CONTINUE WITH</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <input 
+                  type="email" 
+                  placeholder="m@example.com" 
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+              <button className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                Create account
+              </button>
+            </CardContent>
+          </Card>
+
+          {/* Team Members Card */}
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-foreground">Team Members</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Invite your team members to collaborate.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  S
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Sofia Davis</p>
+                  <p className="text-xs text-muted-foreground">m@example.com</p>
+                </div>
+                <select className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground">
+                  <option>Owner</option>
+                </select>
+              </div>
+              <div className="space-y-3">
+                <div className="text-sm text-muted-foreground">
+                  Hi, how can I help you today?
+                </div>
+                <div className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">
+                  Hey, I'm having trouble with my account.
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  What seems to be the problem?
+                </div>
+                <div className="rounded-lg bg-muted px-3 py-2 text-sm text-foreground">
+                  I can't log in.
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Type your message..." 
+                  className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                />
+                <button className="rounded-lg bg-primary px-3 py-2 text-primary-foreground">
+                  →
+                </button>
               </div>
             </CardContent>
           </Card>

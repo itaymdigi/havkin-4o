@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { PageHeader } from '@/components/ui/page-header'
 import { WhatsAppStatus } from '@/components/whatsapp/whatsapp-status'
@@ -11,12 +11,37 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import { MessageSquare, FileText, Users, Settings, Send } from 'lucide-react'
+import { MessageSquare, FileText, Users, Settings, Send, AlertCircle, CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+
+interface WhatsAppInstanceData {
+  configured: boolean
+  instanceID: string
+  status: string
+  statusDetails?: any
+  lastChecked: string
+  apiResponseStatus?: number
+  error?: string
+  suggestion?: string
+}
+
+interface ApiResponse {
+  success: boolean
+  data?: WhatsAppInstanceData
+  error?: string
+  message?: string
+}
 
 export default function WhatsAppPage() {
   const [showSendDialog, setShowSendDialog] = useState(false)
   const [testPhone, setTestPhone] = useState('')
   const [testMessage, setTestMessage] = useState('שלום! זוהי הודעת בדיקה מ-CRM חבקין 👋')
+  const [instanceData, setInstanceData] = useState<WhatsAppInstanceData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   const handleQuickSend = () => {
     if (!testPhone.trim()) {
@@ -24,6 +49,103 @@ export default function WhatsAppPage() {
       return
     }
     setShowSendDialog(true)
+  }
+
+  const fetchInstanceStatus = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const response = await fetch('/api/whatsapp/instance')
+      const data: ApiResponse = await response.json()
+      
+      console.log('WhatsApp instance API response:', data)
+      
+      if (data.success && data.data) {
+        setInstanceData(data.data)
+      } else {
+        setError(data.error || 'Failed to fetch instance status')
+        // Still set instance data if available for debugging
+        if (data.data) {
+          setInstanceData(data.data)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching WhatsApp instance status:', err)
+      setError(err instanceof Error ? err.message : 'Network error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const performAction = async (action: string) => {
+    try {
+      setActionLoading(action)
+      setError(null)
+      
+      const response = await fetch('/api/whatsapp/instance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action }),
+      })
+      
+      const data = await response.json()
+      console.log(`WhatsApp ${action} response:`, data)
+      
+      if (data.success) {
+        // Refresh status after action
+        await fetchInstanceStatus()
+      } else {
+        setError(data.error || `Failed to ${action} instance`)
+      }
+    } catch (err) {
+      console.error(`Error performing ${action}:`, err)
+      setError(err instanceof Error ? err.message : 'Network error')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  useEffect(() => {
+    fetchInstanceStatus()
+  }, [])
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'connected':
+      case 'ready':
+        return 'success'
+      case 'connecting':
+      case 'starting':
+        return 'warning'
+      case 'disconnected':
+      case 'stopped':
+      case 'error':
+      case 'api_error':
+      case 'connection_error':
+        return 'destructive'
+      default:
+        return 'secondary'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'connected':
+      case 'ready':
+        return <CheckCircle className="h-4 w-4" />
+      case 'connecting':
+      case 'starting':
+        return <Clock className="h-4 w-4" />
+      case 'error':
+      case 'api_error':
+      case 'connection_error':
+        return <XCircle className="h-4 w-4" />
+      default:
+        return <AlertCircle className="h-4 w-4" />
+    }
   }
 
   const features = [
@@ -60,6 +182,21 @@ export default function WhatsAppPage() {
           title="WhatsApp Integration"
         />
         <p className="text-muted-foreground mb-6 text-right">נהל את החיבור שלך ל-WhatsApp ושלח הודעות ללקוחות</p>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <p><strong>Error:</strong> {error}</p>
+                {instanceData?.suggestion && (
+                  <p><strong>Suggestion:</strong> {instanceData.suggestion}</p>
+                )}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* WhatsApp Status Card */}
@@ -222,6 +359,207 @@ export default function WhatsAppPage() {
           defaultPhone={testPhone}
           defaultMessage={testMessage}
         />
+
+        <Separator />
+
+        {/* Instance Status Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              WhatsApp Instance Status
+              {instanceData && getStatusIcon(instanceData.status)}
+            </CardTitle>
+            <CardDescription>
+              Current status of your WhatsApp Business instance
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading instance status...</span>
+              </div>
+            ) : instanceData ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Status:</span>
+                  <Badge variant={getStatusColor(instanceData.status)}>
+                    {instanceData.status || 'Unknown'}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Instance ID:</span>
+                  <code className="text-xs bg-muted px-2 py-1 rounded">
+                    {instanceData.instanceID}
+                  </code>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Configured:</span>
+                  <Badge variant={instanceData.configured ? 'success' : 'destructive'}>
+                    {instanceData.configured ? 'Yes' : 'No'}
+                  </Badge>
+                </div>
+                
+                {instanceData.apiResponseStatus && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">API Response:</span>
+                    <Badge variant={instanceData.apiResponseStatus === 200 ? 'success' : 'destructive'}>
+                      {instanceData.apiResponseStatus}
+                    </Badge>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Last Checked:</span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(instanceData.lastChecked).toLocaleString()}
+                  </span>
+                </div>
+
+                {/* Diagnostic Information */}
+                {instanceData.error && (
+                  <div className="mt-4 p-3 bg-muted rounded-lg">
+                    <h4 className="text-sm font-medium mb-2">Diagnostic Info:</h4>
+                    <p className="text-xs text-muted-foreground">{instanceData.error}</p>
+                  </div>
+                )}
+
+                {/* Status Details */}
+                {instanceData.statusDetails && (
+                  <details className="mt-4">
+                    <summary className="text-sm font-medium cursor-pointer">
+                      Raw Status Details
+                    </summary>
+                    <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-x-auto">
+                      {JSON.stringify(instanceData.statusDetails, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No instance data available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Actions Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Instance Actions</CardTitle>
+            <CardDescription>
+              Manage your WhatsApp instance connection
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              onClick={() => performAction('status')}
+              disabled={!!actionLoading}
+              variant="outline"
+              className="w-full"
+            >
+              {actionLoading === 'status' && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              Check Status
+            </Button>
+            
+            <Button
+              onClick={() => performAction('qr')}
+              disabled={!!actionLoading}
+              variant="outline"
+              className="w-full"
+            >
+              {actionLoading === 'qr' && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              Get QR Code
+            </Button>
+            
+            <Button
+              onClick={() => performAction('start')}
+              disabled={!!actionLoading}
+              className="w-full"
+            >
+              {actionLoading === 'start' && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              Start Instance
+            </Button>
+            
+            <Button
+              onClick={() => performAction('stop')}
+              disabled={!!actionLoading}
+              variant="destructive"
+              className="w-full"
+            >
+              {actionLoading === 'stop' && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              Stop Instance
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Send Message Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Send WhatsApp Message</CardTitle>
+            <CardDescription>
+              Send messages through your WhatsApp Business account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {instanceData?.status === 'connected' || instanceData?.status === 'ready' ? (
+              <WhatsAppSendDialog />
+            ) : (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  WhatsApp instance must be connected before sending messages. 
+                  Please connect your instance first by scanning the QR code.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Troubleshooting Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Troubleshooting</CardTitle>
+            <CardDescription>
+              Common issues and solutions
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <h4 className="font-medium">502 Bad Gateway Errors:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                <li>• WaPulse API service may be experiencing issues</li>
+                <li>• Check if your WAPULSE_TOKEN and WAPULSE_INSTANCE_ID are correct</li>
+                <li>• Verify your WaPulse account is active and has credits</li>
+                <li>• Try creating a new instance if the current one is corrupted</li>
+              </ul>
+            </div>
+            
+            <div className="space-y-2">
+              <h4 className="font-medium">Connection Issues:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                <li>• Ensure your WhatsApp instance is started and connected</li>
+                <li>• Scan the QR code with your WhatsApp mobile app</li>
+                <li>• Check your internet connection</li>
+                <li>• Wait a few minutes and try again</li>
+              </ul>
+            </div>
+            
+            <div className="space-y-2">
+              <h4 className="font-medium">Environment Variables:</h4>
+              <div className="text-sm space-y-1">
+                <p>Make sure these are set in your <code>.env.local</code> file:</p>
+                <pre className="bg-muted p-2 rounded text-xs">
+{`WAPULSE_TOKEN=your_token_here
+WAPULSE_INSTANCE_ID=your_instance_id_here`}
+                </pre>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   )

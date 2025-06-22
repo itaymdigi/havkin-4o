@@ -31,7 +31,7 @@ export function SidebarNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="space-y-1 px-2">
+    <nav className="space-y-2 px-3">
       {navigation.map((item) => {
         const isActive = pathname === item.href
         return (
@@ -39,22 +39,25 @@ export function SidebarNav() {
             key={item.name}
             href={item.href}
             className={cn(
-              "flex items-center px-2 py-2 text-sm font-medium rounded-md",
+              "group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
               isActive
-                ? "bg-gray-100 text-gray-900"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
             )}
           >
             <item.icon
               className={cn(
-                "mr-3 h-5 w-5",
+                "mr-3 h-5 w-5 transition-colors",
                 isActive
-                  ? "text-gray-500"
-                  : "text-gray-400 group-hover:text-gray-500"
+                  ? "text-primary"
+                  : "text-muted-foreground group-hover:text-foreground"
               )}
               aria-hidden="true"
             />
-            {item.name}
+            <span className="font-medium">{item.name}</span>
+            {isActive && (
+              <div className="ml-auto h-2 w-2 rounded-full bg-primary" />
+            )}
           </Link>
         )
       })}
