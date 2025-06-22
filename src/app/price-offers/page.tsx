@@ -13,7 +13,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { PriceOffer, PriceOfferItem } from '@/types/price-offer';
-import { savePriceOffer } from '@/lib/price-offers';
 import { Trash2, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { useAuth } from '@/hooks/use-auth';
@@ -172,8 +171,21 @@ export default function PriceOffersPage() {
       setIsGenerating(true);
 
       try {
-        // First save the price offer to the database
-        await savePriceOffer(priceOffer, userId);
+        // Save the price offer via API route
+        const response = await fetch('/api/price-offers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(priceOffer),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to save price offer');
+        }
+
+        const result = await response.json();
         toast.success('הצעת המחיר נשמרה בהצלחה');
         
         // Generate PDF using our new client-side function
