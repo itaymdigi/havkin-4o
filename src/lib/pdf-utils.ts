@@ -14,11 +14,23 @@ const addDavidLibreFont = (doc: jsPDF) => {
     // Add the embedded font to jsPDF
     doc.addFileToVFS('DavidLibre-Regular.ttf', DAVID_LIBRE_FONT_BASE64);
     doc.addFont('DavidLibre-Regular.ttf', 'DavidLibre', 'normal');
+    
+    // Verify the font was added successfully
+    const fontList = doc.getFontList();
+    console.log('Available fonts:', fontList);
+    
+    // Set the font
     doc.setFont('DavidLibre');
+    
+    // Verify current font
+    console.log('Current font:', doc.getFont());
+    
+    return true;
   } catch (error) {
     console.warn('Failed to load DavidLibre font, falling back to default:', error);
     // Fallback to default font if DavidLibre fails to load
     doc.setFont('helvetica');
+    return false;
   }
 };
 
@@ -29,7 +41,8 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
     const doc = new jsPDF('p', 'mm', 'a4');
 
     // Load and set Hebrew font
-    addDavidLibreFont(doc);
+    const fontLoaded = addDavidLibreFont(doc);
+    const fontName = fontLoaded ? 'DavidLibre' : 'helvetica';
 
     // Set RTL support
     doc.setR2L(true);
@@ -88,12 +101,13 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
       body: tableRows,
       theme: 'grid',
       styles: {
-        font: 'DavidLibre',
+        font: fontName,
         fontSize: 10,
         cellPadding: 5,
         minCellHeight: 10,
         halign: 'right',
         overflow: 'linebreak',
+        fontStyle: 'normal',
       },
       headStyles: {
         fillColor: [66, 66, 66],
@@ -102,26 +116,36 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
         fontSize: 11,
         minCellHeight: 12,
         cellPadding: 5,
-        font: 'DavidLibre',
-        fontStyle: 'bold'
+        font: fontName,
+        fontStyle: 'normal'
+      },
+      bodyStyles: {
+        font: fontName,
+        fontStyle: 'normal',
+        halign: 'right',
       },
       columnStyles: {
-        0: { cellWidth: 25, halign: 'right' }, // סה"כ
-        1: { cellWidth: 20, halign: 'center' }, // מטבע
-        2: { cellWidth: 25, halign: 'right' }, // מחיר ליחידה
-        3: { cellWidth: 20, halign: 'center' }, // כמות
-        4: { cellWidth: 'auto', halign: 'right' }, // תיאור פריט
+        0: { cellWidth: 25, halign: 'right', font: fontName }, // סה"כ
+        1: { cellWidth: 20, halign: 'center', font: fontName }, // מטבע
+        2: { cellWidth: 25, halign: 'right', font: fontName }, // מחיר ליחידה
+        3: { cellWidth: 20, halign: 'center', font: fontName }, // כמות
+        4: { cellWidth: 'auto', halign: 'right', font: fontName }, // תיאור פריט
       },
       margin: { right: margin, left: margin },
       didDrawPage: function () {
         // Set font for each page
-        doc.setFont('DavidLibre');
+        doc.setFont(fontName);
+      },
+      didParseCell: function (data) {
+        // Ensure correct font is used for all cells
+        data.cell.styles.font = fontName;
+        data.cell.styles.fontStyle = 'normal';
       }
     });
 
     // Add totals section
     const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
-    doc.setFont('DavidLibre');
+    doc.setFont(fontName);
     doc.setFontSize(12);
     
     const totalsText = [
