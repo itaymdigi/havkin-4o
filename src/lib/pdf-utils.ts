@@ -113,7 +113,7 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
         4: { cellWidth: 'auto', halign: 'right' }, // תיאור פריט
       },
       margin: { right: margin, left: margin },
-      didDrawPage: function (data) {
+      didDrawPage: function () {
         // Set font for each page
         doc.setFont('DavidLibre');
       }
