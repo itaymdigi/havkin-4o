@@ -523,8 +523,8 @@ export default function WhatsAppPage() {
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Send WhatsApp Message
                 </Button>
-                <WhatsAppSendDialog 
-                  open={sendDialogOpen} 
+                <WhatsAppSendDialog
+                  open={sendDialogOpen}
                   onOpenChange={setSendDialogOpen}
                   defaultPhone={testPhone}
                   defaultMessage={testMessage}

@@ -11,7 +11,7 @@ import {
   RefreshCw,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -37,11 +37,7 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
-
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -59,7 +55,11 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkStatus();
+  }, [checkStatus]);
 
   const handleAction = async (action: "start" | "stop" | "qr" | "status") => {
     setActionLoading(action);

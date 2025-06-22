@@ -136,25 +136,18 @@ async function getDashboardData() {
 
     // Handle errors
     if (contactsError) {
-      console.error("Error fetching contacts:", contactsError)
     }
     if (companiesError) {
-      console.error("Error fetching companies:", companiesError)
     }
     if (eventsError) {
-      console.error("Error fetching events:", eventsError)
     }
     if (currentYearOffersError) {
-      console.error("Error fetching current year offers:", currentYearOffersError)
     }
     if (lastYearOffersError) {
-      console.error("Error fetching last year offers:", lastYearOffersError)
     }
     if (filesError) {
-      console.error("Error fetching files:", filesError)
     }
     if (totalOffersError) {
-      console.error("Error fetching total offers:", totalOffersError)
     }
 
     // Calculate monthly data for both years

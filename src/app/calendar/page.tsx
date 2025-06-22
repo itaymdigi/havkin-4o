@@ -7,7 +7,7 @@ import parse from "date-fns/parse";
 import startOfWeek from "date-fns/startOfWeek";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Calendar, dateFnsLocalizer, Views } from "react-big-calendar";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -64,11 +64,7 @@ export default function CalendarPage() {
   const [view, setView] = useState(Views.MONTH);
   const [date, setDate] = useState(new Date());
 
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
-
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -90,7 +86,11 @@ export default function CalendarPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
 
   const messages = {
     today: "היום",
