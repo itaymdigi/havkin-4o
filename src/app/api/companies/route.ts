@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createClient } from '@supabase/supabase-js'
+import { supabaseConfig } from '@/config/supabase'
 
 // Create Supabase client with service role key (bypasses RLS)
+// Note: For production, you should use a service role key instead of anon key
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // Service role key bypasses RLS
+  supabaseConfig.url,
+  supabaseConfig.anonKey, // TODO: Replace with service role key for production
   {
     auth: {
       autoRefreshToken: false,

@@ -1,10 +1,11 @@
 import { createBrowserClient } from '@supabase/ssr';
 import { PriceOffer } from '@/types/price-offer';
+import { supabaseConfig } from '@/config/supabase';
 
 export async function savePriceOffer(priceOffer: PriceOffer, userId: string) {
   const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    supabaseConfig.url,
+    supabaseConfig.anonKey
   );
 
   try {

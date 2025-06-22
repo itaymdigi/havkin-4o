@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { PriceOffer } from '@/types/price-offer';
 import { createBrowserClient } from '@supabase/ssr';
+import { supabaseConfig } from '@/config/supabase';
 
 // Add these types at the top of the file after the existing imports
 type AutoTableStyles = {
@@ -45,8 +46,8 @@ interface jsPDFWithAutoTable extends jsPDF {
 
 export async function generatePDF(priceOffer: PriceOffer, userId: string) {
   const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    supabaseConfig.url,
+    supabaseConfig.anonKey
   );
   
   try {
@@ -204,8 +205,8 @@ export async function generatePDF(priceOffer: PriceOffer, userId: string) {
 // Function to get a PDF by its ID
 export const getPdfUrl = async (fileId: string): Promise<string | null> => {
   const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    supabaseConfig.url,
+    supabaseConfig.anonKey
   );
   
   try {
