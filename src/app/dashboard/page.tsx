@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Users, Building2, FileText, Calendar, ArrowUpRight } from "lucide-react"
-import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { getAuthenticatedUser } from "@/lib/clerk-server"
 import { formatDateTime, formatCurrency } from "@/lib/utils"
 import type { CalendarEvent } from "@/types"
 import { BarChart } from "@/components/charts/bar-chart"
@@ -42,10 +42,7 @@ interface MonthlyPriceOffer {
 
 async function getDashboardData() {
   try {
-    const supabase = await createServerSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) throw new Error("User not authenticated")
+    const { userId, supabase } = await getAuthenticatedUser()
 
     // Get date ranges
     const now = new Date()
@@ -70,11 +67,11 @@ async function getDashboardData() {
       { data: uploadedFiles, error: filesError },
       { count: totalOffers, error: totalOffersError }
     ] = await Promise.all([
-      supabase.from("contacts").select("*").eq("user_id", user.id),
-      supabase.from("companies").select("*").eq("user_id", user.id),
+      supabase.from("contacts").select("*").eq("user_id", userId),
+      supabase.from("companies").select("*").eq("user_id", userId),
       supabase.from("calendar_events")
         .select(`*, contact:contacts(first_name, last_name)`)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("start_time", { ascending: true }),
       // Current year offers with items
       supabase.from("price_offers")
@@ -86,7 +83,7 @@ async function getDashboardData() {
             currency
           )
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .gte("created_at", startCurrentYear.toISOString())
         .lte("created_at", endCurrentYear.toISOString()),
       // Last year offers with items
@@ -99,7 +96,7 @@ async function getDashboardData() {
             currency
           )
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .gte("created_at", startLastYear.toISOString())
         .lte("created_at", endLastYear.toISOString()),
       // Current month offers with items
@@ -111,7 +108,7 @@ async function getDashboardData() {
             currency
           )
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .gte("created_at", currentMonth.toISOString()),
       // Last month offers with items
       supabase.from("price_offers")
@@ -122,17 +119,17 @@ async function getDashboardData() {
             currency
           )
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .gte("created_at", lastMonth.toISOString())
         .lt("created_at", currentMonth.toISOString()),
       // Uploaded files
       supabase.from("files")
         .select("*")
-        .eq("uploaded_by", user.id),
+        .eq("uploaded_by", userId),
       // Total price offers
       supabase.from("price_offers")
         .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
     ])
 
     // Handle errors

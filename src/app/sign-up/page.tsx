@@ -1,17 +1,17 @@
 'use client';
 
-import { SignIn } from '@clerk/nextjs';
+import { SignUp } from '@clerk/nextjs';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 
-export default function LoginPage() {
+export default function SignUpPage() {
   return (
     <div className="container mx-auto p-6">
-      <PageHeader title="ברוכים הבאים" />
+      <PageHeader title="הרשמה למערכת" />
       <div className="max-w-md mx-auto">
         <Card>
           <CardContent className="p-6 flex justify-center">
-            <SignIn 
+            <SignUp 
               appearance={{
                 elements: {
                   formButtonPrimary: 
@@ -22,7 +22,7 @@ export default function LoginPage() {
                 }
               }}
               redirectUrl="/dashboard"
-              signUpUrl="/sign-up"
+              signInUrl="/login"
             />
           </CardContent>
         </Card>

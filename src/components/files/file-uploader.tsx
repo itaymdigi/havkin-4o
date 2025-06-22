@@ -5,6 +5,7 @@ import { Upload, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/lib/supabase"
+import { useUser } from "@clerk/nextjs"
 
 interface FileUploaderProps {
   onUploadSuccess: () => void;
@@ -32,6 +33,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
 export function FileUploader({ onUploadSuccess }: FileUploaderProps): JSX.Element {
   const [uploading, setUploading] = useState<boolean>(false)
   const { toast } = useToast()
+  const { user } = useUser()
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
     try {
@@ -44,7 +46,6 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps): JSX.Elemen
 
       setUploading(true)
 
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("User not authenticated")
 
       // Create a safe filename by removing special characters and spaces

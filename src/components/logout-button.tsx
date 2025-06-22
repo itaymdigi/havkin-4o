@@ -2,21 +2,20 @@
 
 import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
+import { useClerk } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
 export function LogoutButton() {
-  const handleLogout = () => {
-    // Sign out and redirect immediately
-    supabase.auth.signOut().then(() => {
-      // Clear any stored data
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      // Redirect to login
-      window.location.replace('/login');
-    }).catch((error) => {
+  const { signOut } = useClerk();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.push('/login');
+    } catch (error) {
       console.error('Error signing out:', error);
-    });
+    }
   };
 
   return (

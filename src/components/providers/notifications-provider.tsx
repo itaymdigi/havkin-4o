@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/lib/notifications"
 import { supabase } from "@/lib/supabase"
+import { useUser } from "@clerk/nextjs"
 import type { Notification } from "@/types"
 
 interface NotificationsContextType {
@@ -35,6 +36,7 @@ export function NotificationsProvider({
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { isSignedIn, isLoaded } = useUser()
 
   const refreshNotifications = async (): Promise<void> => {
     try {
@@ -55,45 +57,45 @@ export function NotificationsProvider({
     let isMounted = true
 
     const fetchInitialNotifications = async (): Promise<void> => {
-      if (!isMounted) return
-      await refreshNotifications()
-    }
-
-    // Listen for auth state changes
-    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
-      async (event) => {
-        if (event === 'SIGNED_IN') {
-          await refreshNotifications()
-        } else if (event === 'SIGNED_OUT') {
-          setNotifications([])
-        }
+      if (!isMounted || !isLoaded) return
+      
+      if (isSignedIn) {
+        await refreshNotifications()
+      } else {
+        setNotifications([])
+        setIsLoading(false)
       }
-    )
+    }
 
     void fetchInitialNotifications()
     
-    const channel = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications'
-        },
-        async () => {
-          if (!isMounted) return
-          await refreshNotifications()
-        }
-      )
-      .subscribe()
+    // Set up real-time subscription for notifications
+    let channel: any = null
+    if (isSignedIn) {
+      channel = supabase
+        .channel('notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications'
+          },
+          async () => {
+            if (!isMounted) return
+            await refreshNotifications()
+          }
+        )
+        .subscribe()
+    }
 
     return () => {
       isMounted = false
-      authSubscription.unsubscribe()
-      void supabase.removeChannel(channel)
+      if (channel) {
+        void supabase.removeChannel(channel)
+      }
     }
-  }, [])
+  }, [isSignedIn, isLoaded])
 
   const markAsRead = async (id: string): Promise<void> => {
     try {

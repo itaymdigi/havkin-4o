@@ -1,65 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-// List of public routes that don't require authentication
-const publicRoutes = [
-  '/login',
-  '/auth/callback',
-  '/register',
-  '/_next',
-  '/api/auth',
-  '/favicon.ico',
-];
+export default clerkMiddleware();
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  
-  try {
-    // Create supabase server client
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          persistSession: false
-        }
-      }
-    );
-
-    // Check if the route is public
-    const isPublicRoute = publicRoutes.some(route => 
-      req.nextUrl.pathname.startsWith(route) || 
-      req.nextUrl.pathname === '/'
-    );
-
-    // Skip auth check for public routes and static files
-    if (isPublicRoute || req.nextUrl.pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js)$/)) {
-      return res;
-    }
-
-    const { data: { session } } = await supabase.auth.getSession();
-
-    // If there's no session and the route isn't public, redirect to login
-    if (!session) {
-      const redirectUrl = new URL('/login', req.url);
-      redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname);
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    return res;
-
-  } catch (error) {
-    console.error('Middleware error:', error);
-    // On critical errors, redirect to login
-    if (!req.nextUrl.pathname.startsWith('/login')) {
-      return NextResponse.redirect(new URL('/login', req.url));
-    }
-    return res;
-  }
-}
-
-// Update matcher to exclude static files and api routes
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    "/((?!_next|[^?]*\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Always run for API routes
+    "/(api|trpc)(.*)",
+  ],
 }; 

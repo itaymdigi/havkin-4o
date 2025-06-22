@@ -2,24 +2,23 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useUser } from '@clerk/nextjs';
 
 export default function RootPage() {
   const router = useRouter();
+  const { isSignedIn, isLoaded } = useUser();
 
   useEffect(() => {
-    // Check auth state and redirect accordingly
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/login');
-      }
-    };
-
-    checkAuth();
-  }, [router]);
+    // Wait for Clerk to load user state
+    if (!isLoaded) return;
+    
+    // Redirect based on authentication state
+    if (isSignedIn) {
+      router.replace('/dashboard');
+    } else {
+      router.replace('/login');
+    }
+  }, [isSignedIn, isLoaded, router]);
 
   // Show loading state while checking auth
   return (
