@@ -70,7 +70,7 @@ export function NotificationsProvider({
     void fetchInitialNotifications()
     
     // Set up real-time subscription for notifications
-    let channel: any = null
+    let channel: ReturnType<typeof supabase.channel> | null = null
     if (isSignedIn) {
       channel = supabase
         .channel('notifications')
