@@ -1,15 +1,13 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { format } from "date-fns";
+import { he } from "date-fns/locale";
+import { Pencil, Trash2, X } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from '@/hooks/use-auth';
-import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, X } from 'lucide-react';
-import { useRouter, useParams } from 'next/navigation';
+import { MapView } from "@/components/map-view";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +18,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MapView } from '@/components/map-view';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/use-auth";
 
 interface EventDetails {
   id: string;
@@ -53,25 +53,25 @@ export default function EventDetailsPage() {
     const fetchEventDetails = async () => {
       try {
         setIsLoading(true);
-        
+
         if (authLoading) return; // Wait for auth to load
-        
+
         if (!user || !userId) {
-          toast.error('יש להתחבר כדי לצפות באירוע');
-          router.push('/login');
+          toast.error("יש להתחבר כדי לצפות באירוע");
+          router.push("/login");
           return;
         }
 
         // Use fetch to call our API route
         const response = await fetch(`/api/calendar-events/${id}`);
-        
+
         if (!response.ok) {
           if (response.status === 404) {
-            toast.error('האירוע לא נמצא');
-            router.push('/calendar');
+            toast.error("האירוע לא נמצא");
+            router.push("/calendar");
             return;
           }
-          throw new Error('Failed to fetch event');
+          throw new Error("Failed to fetch event");
         }
 
         const data = await response.json();
@@ -83,9 +83,8 @@ export default function EventDetailsPage() {
           contact_id: data.contact_id || null,
         } as EventDetails);
       } catch (error: unknown) {
-        const err = error as Error | SupabaseError;
-        console.error('Error fetching event details:', err);
-        toast.error('אירעה שגיאה בטעינת פרטי האירוע');
+        const _err = error as Error | SupabaseError;
+        toast.error("אירעה שגיאה בטעינת פרטי האירוע");
       } finally {
         setIsLoading(false);
       }
@@ -97,29 +96,28 @@ export default function EventDetailsPage() {
   const handleDelete = async () => {
     try {
       if (!user || !userId) {
-        toast.error('יש להתחבר כדי למחוק אירוע');
+        toast.error("יש להתחבר כדי למחוק אירוע");
         return;
       }
 
       const response = await fetch(`/api/calendar-events/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete event');
+        throw new Error("Failed to delete event");
       }
 
-      toast.success('האירוע נמחק בהצלחה');
-      router.push('/calendar');
+      toast.success("האירוע נמחק בהצלחה");
+      router.push("/calendar");
       router.refresh();
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      toast.error('אירעה שגיאה במחיקת האירוע');
+    } catch (_error) {
+      toast.error("אירעה שגיאה במחיקת האירוע");
     }
   };
 
   const handleClose = () => {
-    router.push('/calendar');
+    router.push("/calendar");
   };
 
   if (isLoading) {
@@ -127,8 +125,8 @@ export default function EventDetailsPage() {
       <DashboardLayout>
         <div className="container py-6">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/4" />
+            <div className="h-32 bg-gray-200 rounded" />
           </div>
         </div>
       </DashboardLayout>
@@ -142,10 +140,7 @@ export default function EventDetailsPage() {
           <div className="text-center">
             <h2 className="text-xl font-semibold">האירוע לא נמצא</h2>
             <p className="mt-2 text-gray-600">האירוע המבוקש אינו קיים או שאין לך הרשאות לצפות בו</p>
-            <Button
-              onClick={handleClose}
-              className="mt-4"
-            >
+            <Button onClick={handleClose} className="mt-4">
               חזור ללוח השנה
             </Button>
           </div>
@@ -198,11 +193,11 @@ export default function EventDetailsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h3 className="font-semibold mb-2">מועד התחלה</h3>
-                <p>{format(new Date(event.start_time), 'dd/MM/yyyy HH:mm', { locale: he })}</p>
+                <p>{format(new Date(event.start_time), "dd/MM/yyyy HH:mm", { locale: he })}</p>
               </div>
               <div>
                 <h3 className="font-semibold mb-2">מועד סיום</h3>
-                <p>{format(new Date(event.end_time), 'dd/MM/yyyy HH:mm', { locale: he })}</p>
+                <p>{format(new Date(event.end_time), "dd/MM/yyyy HH:mm", { locale: he })}</p>
               </div>
               {event.location && (
                 <div className="col-span-2">
@@ -231,7 +226,10 @@ export default function EventDetailsPage() {
             </AlertDialogHeader>
             <AlertDialogFooter className="gap-2">
               <AlertDialogCancel>ביטול</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground flex items-center gap-2">
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground flex items-center gap-2"
+              >
                 <Trash2 className="h-4 w-4" />
                 מחק
               </AlertDialogAction>
@@ -241,4 +239,4 @@ export default function EventDetailsPage() {
       </div>
     </DashboardLayout>
   );
-} 
+}

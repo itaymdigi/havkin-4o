@@ -1,79 +1,88 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { toast } from 'sonner'
-import { MessageSquare, QrCode, Power, PowerOff, Loader2, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react'
+import {
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  MessageSquare,
+  Power,
+  PowerOff,
+  QrCode,
+  RefreshCw,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface WhatsAppStatusProps {
-  className?: string
+  className?: string;
 }
 
 interface InstanceStatus {
-  configured: boolean
-  instanceID: string
-  status?: string
-  statusDetails?: Record<string, unknown>
-  lastChecked?: string
-  error?: string
+  configured: boolean;
+  instanceID: string;
+  status?: string;
+  statusDetails?: Record<string, unknown>;
+  lastChecked?: string;
+  error?: string;
 }
 
 export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
-  const [statusData, setStatusData] = useState<InstanceStatus | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [statusData, setStatusData] = useState<InstanceStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    checkStatus()
-  }, [])
+    checkStatus();
+  }, [checkStatus]);
 
   const checkStatus = async () => {
-    setIsLoading(true)
-    setError(null)
-    
+    setIsLoading(true);
+    setError(null);
+
     try {
-      const response = await fetch('/api/whatsapp/instance')
-      const result = await response.json()
+      const response = await fetch("/api/whatsapp/instance");
+      const result = await response.json();
 
       if (response.ok && result.success) {
-        setStatusData(result.data)
+        setStatusData(result.data);
       } else {
-        setError(result.error || 'שגיאה בבדיקת סטטוס WhatsApp')
+        setError(result.error || "שגיאה בבדיקת סטטוס WhatsApp");
       }
-    } catch (error) {
-      console.error('Error checking WhatsApp status:', error)
-      setError('שגיאה בחיבור לשרת')
+    } catch (_error) {
+      setError("שגיאה בחיבור לשרת");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleAction = async (action: 'start' | 'stop' | 'qr' | 'status') => {
-    setActionLoading(action)
-    setError(null)
+  const handleAction = async (action: "start" | "stop" | "qr" | "status") => {
+    setActionLoading(action);
+    setError(null);
 
     try {
-      const response = await fetch('/api/whatsapp/instance', {
-        method: 'POST',
+      const response = await fetch("/api/whatsapp/instance", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ action }),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || `Failed to ${action} instance`)
+        throw new Error(result.error || `Failed to ${action} instance`);
       }
 
-      if (action === 'qr' && result.data?.qrCode) {
+      if (action === "qr" && result.data?.qrCode) {
         // Show QR code in a dialog or new window
-        const qrWindow = window.open('', '_blank', 'width=500,height=600')
+        const qrWindow = window.open("", "_blank", "width=500,height=600");
         if (qrWindow) {
           qrWindow.document.write(`
             <html>
@@ -103,61 +112,60 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
                 </div>
               </body>
             </html>
-          `)
+          `);
         }
       }
 
       // Refresh status after action
-      if (action !== 'qr') {
-        setTimeout(checkStatus, 1000)
+      if (action !== "qr") {
+        setTimeout(checkStatus, 1000);
       }
 
-      toast.success(result.message || `${action} completed successfully`)
+      toast.success(result.message || `${action} completed successfully`);
     } catch (error) {
-      console.error(`Error ${action} WhatsApp instance:`, error)
-      const errorMessage = error instanceof Error ? error.message : `שגיאה ב-${action}`
-      setError(errorMessage)
-      toast.error(errorMessage)
+      const errorMessage = error instanceof Error ? error.message : `שגיאה ב-${action}`;
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
-      setActionLoading(null)
+      setActionLoading(null);
     }
-  }
+  };
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
-      case 'connected':
-      case 'ready':
+      case "connected":
+      case "ready":
         return (
           <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
             <CheckCircle className="ml-1 h-3 w-3" />
             מחובר
           </Badge>
-        )
-      case 'disconnected':
-      case 'closed':
+        );
+      case "disconnected":
+      case "closed":
         return (
           <Badge variant="destructive">
             <XCircle className="ml-1 h-3 w-3" />
             מנותק
           </Badge>
-        )
-      case 'connecting':
-      case 'opening':
+        );
+      case "connecting":
+      case "opening":
         return (
           <Badge variant="secondary">
             <Loader2 className="ml-1 h-3 w-3 animate-spin" />
             מתחבר...
           </Badge>
-        )
+        );
       default:
         return (
           <Badge variant="outline">
             <AlertCircle className="ml-1 h-3 w-3" />
             לא ידוע
           </Badge>
-        )
+        );
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -169,7 +177,7 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -179,9 +187,7 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
           <MessageSquare className="h-5 w-5 text-green-600" />
           סטטוס WhatsApp
         </CardTitle>
-        <CardDescription className="text-right">
-          נהל את החיבור שלך ל-WhatsApp Web
-        </CardDescription>
+        <CardDescription className="text-right">נהל את החיבור שלך ל-WhatsApp Web</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
@@ -193,7 +199,7 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
 
         <div className="flex items-center justify-between">
           <span>סטטוס תצורה:</span>
-          <Badge variant={statusData?.configured ? 'default' : 'destructive'}>
+          <Badge variant={statusData?.configured ? "default" : "destructive"}>
             {statusData?.configured ? (
               <>
                 <CheckCircle className="ml-1 h-3 w-3" />
@@ -226,7 +232,7 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
               <div className="flex items-center justify-between">
                 <span>נבדק לאחרונה:</span>
                 <span className="text-sm text-muted-foreground">
-                  {new Date(statusData.lastChecked).toLocaleTimeString('he-IL')}
+                  {new Date(statusData.lastChecked).toLocaleTimeString("he-IL")}
                 </span>
               </div>
             )}
@@ -248,12 +254,12 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => handleAction('status')}
+                onClick={() => handleAction("status")}
                 disabled={actionLoading !== null}
                 className="flex-1 justify-center"
                 size="sm"
               >
-                {actionLoading === 'status' ? (
+                {actionLoading === "status" ? (
                   <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 ) : (
                   <RefreshCw className="ml-2 h-4 w-4" />
@@ -263,12 +269,12 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
 
               <Button
                 variant="outline"
-                onClick={() => handleAction('qr')}
+                onClick={() => handleAction("qr")}
                 disabled={actionLoading !== null}
                 className="flex-1 justify-center"
                 size="sm"
               >
-                {actionLoading === 'qr' ? (
+                {actionLoading === "qr" ? (
                   <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 ) : (
                   <QrCode className="ml-2 h-4 w-4" />
@@ -280,12 +286,12 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => handleAction('start')}
+                onClick={() => handleAction("start")}
                 disabled={actionLoading !== null}
                 className="flex-1 justify-center"
                 size="sm"
               >
-                {actionLoading === 'start' ? (
+                {actionLoading === "start" ? (
                   <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Power className="ml-2 h-4 w-4" />
@@ -295,12 +301,12 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
 
               <Button
                 variant="outline"
-                onClick={() => handleAction('stop')}
+                onClick={() => handleAction("stop")}
                 disabled={actionLoading !== null}
                 className="flex-1 justify-center"
                 size="sm"
               >
-                {actionLoading === 'stop' ? (
+                {actionLoading === "stop" ? (
                   <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 ) : (
                   <PowerOff className="ml-2 h-4 w-4" />
@@ -312,5 +318,5 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
         )}
       </CardContent>
     </Card>
-  )
-} 
+  );
+}

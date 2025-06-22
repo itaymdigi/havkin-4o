@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { FileUploader } from "@/components/files/file-uploader"
-import { FilesList } from "@/components/files/files-list"
-import { useRef } from "react"
+import { useRef } from "react";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { FileUploader } from "@/components/files/file-uploader";
+import { FilesList } from "@/components/files/files-list";
 
 export default function FilesPage() {
-  const filesListRef = useRef<{ fetchFiles: () => Promise<void> }>(null)
+  const filesListRef = useRef<{ fetchFiles: () => Promise<void> }>(null);
 
   const handleUploadSuccess = () => {
-    filesListRef.current?.fetchFiles()
-  }
+    filesListRef.current?.fetchFiles();
+  };
 
   return (
     <DashboardLayout>
@@ -22,5 +22,5 @@ export default function FilesPage() {
         <FilesList ref={filesListRef} />
       </div>
     </DashboardLayout>
-  )
-} 
+  );
+}

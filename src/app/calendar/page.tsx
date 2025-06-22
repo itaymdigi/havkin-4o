@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
-import format from 'date-fns/format';
-import parse from 'date-fns/parse';
-import startOfWeek from 'date-fns/startOfWeek';
-import getDay from 'date-fns/getDay';
-import he from 'date-fns/locale/he';
-import { Card } from '@/components/ui/card';
-import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
-import { Plus, ChevronRight, ChevronLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import './styles.css';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { createCalendarEvent, getCalendarEvents } from '@/lib/calendar-events';
-import { NewEventForm } from './components/new-event-form';
+import format from "date-fns/format";
+import getDay from "date-fns/getDay";
+import he from "date-fns/locale/he";
+import parse from "date-fns/parse";
+import startOfWeek from "date-fns/startOfWeek";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Calendar, dateFnsLocalizer, Views } from "react-big-calendar";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import "./styles.css";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { createCalendarEvent, getCalendarEvents } from "@/lib/calendar-events";
+import { NewEventForm } from "./components/new-event-form";
 
 // Setup the localizer for react-big-calendar
 const locales = {
-  'he': he,
+  he: he,
 };
 
 const localizer = dateFnsLocalizer({
@@ -51,7 +51,7 @@ interface EventFormData {
   end_time: string;
 }
 
-import { ToolbarProps as BigCalendarToolbarProps } from 'react-big-calendar';
+import type { ToolbarProps as BigCalendarToolbarProps } from "react-big-calendar";
 
 type ToolbarProps = BigCalendarToolbarProps<CalendarEvent>;
 
@@ -66,7 +66,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [fetchEvents]);
 
   const fetchEvents = async () => {
     try {
@@ -75,7 +75,7 @@ export default function CalendarPage() {
 
       const data = await getCalendarEvents();
 
-      const formattedEvents: CalendarEvent[] = data.map(event => ({
+      const formattedEvents: CalendarEvent[] = data.map((event) => ({
         id: event.id,
         title: event.title,
         start: new Date(event.start_time),
@@ -84,77 +84,75 @@ export default function CalendarPage() {
         location: event.location || undefined,
       }));
       setEvents(formattedEvents);
-    } catch (err) {
-      console.error('Error fetching events:', err);
-      setError('אירעה שגיאה בטעינת האירועים');
-      toast.error('אירעה שגיאה בטעינת האירועים');
+    } catch (_err) {
+      setError("אירעה שגיאה בטעינת האירועים");
+      toast.error("אירעה שגיאה בטעינת האירועים");
     } finally {
       setIsLoading(false);
     }
   };
 
   const messages = {
-    today: 'היום',
-    previous: 'הקודם',
-    next: 'הבא',
-    month: 'חודש',
-    week: 'שבוע',
-    day: 'יום',
-    agenda: 'סדר יום',
-    date: 'תאריך',
-    time: 'שעה',
-    event: 'אירוע',
-    noEventsInRange: 'אין אירועים בטווח זה',
-    allDay: 'כל היום',
-    work_week: 'שבוע עבודה',
-    yesterday: 'אתמול',
-    tomorrow: 'מחר',
+    today: "היום",
+    previous: "הקודם",
+    next: "הבא",
+    month: "חודש",
+    week: "שבוע",
+    day: "יום",
+    agenda: "סדר יום",
+    date: "תאריך",
+    time: "שעה",
+    event: "אירוע",
+    noEventsInRange: "אין אירועים בטווח זה",
+    allDay: "כל היום",
+    work_week: "שבוע עבודה",
+    yesterday: "אתמול",
+    tomorrow: "מחר",
     showMore: (total: number) => `עוד ${total}`,
   };
 
   const handleCreateEvent = async (data: EventFormData) => {
     try {
-      const startDate = parse(data.start_time, 'dd/MM/yyyy HH:mm', new Date());
-      const endDate = parse(data.end_time, 'dd/MM/yyyy HH:mm', new Date());
+      const startDate = parse(data.start_time, "dd/MM/yyyy HH:mm", new Date());
+      const endDate = parse(data.end_time, "dd/MM/yyyy HH:mm", new Date());
 
       if (!startDate || !endDate) {
-        toast.error('פורמט התאריך אינו תקין');
+        toast.error("פורמט התאריך אינו תקין");
         return;
       }
 
       await createCalendarEvent({
         title: data.title,
-        description: data.description || '',
-        location: data.location || '',
+        description: data.description || "",
+        location: data.location || "",
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
         user_id: null, // This will be set by the API
-        contact_id: null
+        contact_id: null,
       });
 
       await fetchEvents(); // Refresh the events list
-      toast.success('האירוע נוצר בהצלחה');
+      toast.success("האירוע נוצר בהצלחה");
       setIsNewEventDialogOpen(false);
-    } catch (error) {
-      console.error('Error creating event:', error);
-      toast.error('אירעה שגיאה ביצירת האירוע');
+    } catch (_error) {
+      toast.error("אירעה שגיאה ביצירת האירוע");
     }
   };
 
   // Custom event formats
   const formats = {
-    dateFormat: 'dd',
-    monthHeaderFormat: (date: Date) => format(date, 'MMMM yyyy', { locale: he }),
-    dayHeaderFormat: (date: Date) => format(date, 'EEEE dd/MM/yyyy', { locale: he }),
+    dateFormat: "dd",
+    monthHeaderFormat: (date: Date) => format(date, "MMMM yyyy", { locale: he }),
+    dayHeaderFormat: (date: Date) => format(date, "EEEE dd/MM/yyyy", { locale: he }),
     dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
-      `${format(start, 'dd/MM/yyyy', { locale: he })} - ${format(end, 'dd/MM/yyyy', { locale: he })}`,
+      `${format(start, "dd/MM/yyyy", { locale: he })} - ${format(end, "dd/MM/yyyy", { locale: he })}`,
     eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
-      `${format(start, 'HH:mm', { locale: he })} - ${format(end, 'HH:mm', { locale: he })}`,
-    timeGutterFormat: (date: Date) => format(date, 'HH:mm', { locale: he }),
-    agendaDateFormat: (date: Date) => format(date, 'dd/MM/yyyy', { locale: he }),
-    agendaTimeFormat: (date: Date) => format(date, 'HH:mm', { locale: he }),
+      `${format(start, "HH:mm", { locale: he })} - ${format(end, "HH:mm", { locale: he })}`,
+    timeGutterFormat: (date: Date) => format(date, "HH:mm", { locale: he }),
+    agendaDateFormat: (date: Date) => format(date, "dd/MM/yyyy", { locale: he }),
+    agendaTimeFormat: (date: Date) => format(date, "HH:mm", { locale: he }),
     agendaTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
-      `${format(start, 'HH:mm', { locale: he })} - ${format(end, 'HH:mm', { locale: he })}`,
+      `${format(start, "HH:mm", { locale: he })} - ${format(end, "HH:mm", { locale: he })}`,
   };
 
   return (
@@ -171,12 +169,10 @@ export default function CalendarPage() {
         <Card className="p-6">
           {isLoading ? (
             <div className="flex justify-center items-center h-[600px]">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
             </div>
           ) : error ? (
-            <div className="flex justify-center items-center h-[600px] text-red-500">
-              {error}
-            </div>
+            <div className="flex justify-center items-center h-[600px] text-red-500">{error}</div>
           ) : (
             <Calendar
               localizer={localizer}
@@ -195,33 +191,32 @@ export default function CalendarPage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => props.onNavigate('PREV')}
+                        onClick={() => props.onNavigate("PREV")}
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => props.onNavigate('NEXT')}
+                        onClick={() => props.onNavigate("NEXT")}
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => props.onNavigate('TODAY')}
-                      >
+                      <Button variant="outline" onClick={() => props.onNavigate("TODAY")}>
                         {messages.today}
                       </Button>
                     </div>
                     <h2 className="text-xl font-semibold">
-                      {format(props.date, 'MMMM yyyy', { locale: he })}
+                      {format(props.date, "MMMM yyyy", { locale: he })}
                     </h2>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => props.onView(Views.MONTH)}
-                        className={props.view === Views.MONTH ? 'bg-primary text-primary-foreground' : ''}
+                        className={
+                          props.view === Views.MONTH ? "bg-primary text-primary-foreground" : ""
+                        }
                       >
                         {messages.month}
                       </Button>
@@ -229,7 +224,9 @@ export default function CalendarPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => props.onView(Views.WEEK)}
-                        className={props.view === Views.WEEK ? 'bg-primary text-primary-foreground' : ''}
+                        className={
+                          props.view === Views.WEEK ? "bg-primary text-primary-foreground" : ""
+                        }
                       >
                         {messages.week}
                       </Button>
@@ -237,7 +234,9 @@ export default function CalendarPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => props.onView(Views.DAY)}
-                        className={props.view === Views.DAY ? 'bg-primary text-primary-foreground' : ''}
+                        className={
+                          props.view === Views.DAY ? "bg-primary text-primary-foreground" : ""
+                        }
                       >
                         {messages.day}
                       </Button>
@@ -245,7 +244,9 @@ export default function CalendarPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => props.onView(Views.AGENDA)}
-                        className={props.view === Views.AGENDA ? 'bg-primary text-primary-foreground' : ''}
+                        className={
+                          props.view === Views.AGENDA ? "bg-primary text-primary-foreground" : ""
+                        }
                       >
                         {messages.agenda}
                       </Button>
@@ -274,8 +275,8 @@ export default function CalendarPage() {
             <DialogHeader>
               <DialogTitle>אירוע חדש</DialogTitle>
             </DialogHeader>
-            <NewEventForm 
-              onSubmit={(data: EventFormData) => handleCreateEvent(data)} 
+            <NewEventForm
+              onSubmit={(data: EventFormData) => handleCreateEvent(data)}
               onCancel={() => setIsNewEventDialogOpen(false)}
               initialDate={date}
             />
@@ -284,4 +285,4 @@ export default function CalendarPage() {
       </div>
     </DashboardLayout>
   );
-} 
+}

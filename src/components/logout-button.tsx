@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useClerk } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import { useClerk } from "@clerk/nextjs";
+import { LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function LogoutButton() {
   const { signOut } = useClerk();
@@ -12,10 +12,8 @@ export function LogoutButton() {
   const handleLogout = async () => {
     try {
       await signOut();
-      router.push('/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+      router.push("/login");
+    } catch (_error) {}
   };
 
   return (
@@ -29,4 +27,4 @@ export function LogoutButton() {
       <span className="mr-2 rtl:ml-2">התנתק</span>
     </Button>
   );
-} 
+}

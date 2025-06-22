@@ -1,17 +1,18 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { useUser } from "@clerk/nextjs"
+import { useUser } from "@clerk/nextjs";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -19,11 +20,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { createCompany, updateCompany } from "@/lib/companies"
-import type { Company } from "@/types"
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { createCompany, updateCompany } from "@/lib/companies";
+import type { Company } from "@/types";
 
 const companySchema = z.object({
   name: z.string().min(1, "Company name is required"),
@@ -31,24 +31,20 @@ const companySchema = z.object({
   website: z.string().url().optional().nullable(),
   address: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
-})
+});
 
-type CompanyFormValues = z.infer<typeof companySchema>
+type CompanyFormValues = z.infer<typeof companySchema>;
 
 interface CompanyFormDialogProps {
-  company?: Company
-  trigger: React.ReactNode
-  onSuccess: () => void
+  company?: Company;
+  trigger: React.ReactNode;
+  onSuccess: () => void;
 }
 
-export function CompanyFormDialog({
-  company,
-  trigger,
-  onSuccess,
-}: CompanyFormDialogProps) {
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const { user } = useUser()
+export function CompanyFormDialog({ company, trigger, onSuccess }: CompanyFormDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { user } = useUser();
 
   const form = useForm<CompanyFormValues>({
     resolver: zodResolver(companySchema),
@@ -59,33 +55,31 @@ export function CompanyFormDialog({
       address: company?.address || "",
       phone: company?.phone || "",
     },
-  })
+  });
 
   async function onSubmit(data: CompanyFormValues) {
     if (!user) {
-      console.error("User not authenticated")
-      return
+      return;
     }
 
     try {
-      setLoading(true)
+      setLoading(true);
       if (company) {
-        await updateCompany(company.id, data)
+        await updateCompany(company.id, data);
       } else {
-        await createCompany({ 
-          ...data, 
+        await createCompany({
+          ...data,
           industry: data.industry ?? null,
           website: data.website ?? null,
           address: data.address ?? null,
-          phone: data.phone ?? null
-        } as Omit<Company, "id" | "created_at" | "updated_at">)
+          phone: data.phone ?? null,
+        } as Omit<Company, "id" | "created_at" | "updated_at">);
       }
-      setOpen(false)
-      onSuccess()
-    } catch (error) {
-      console.error("Failed to save company:", error)
+      setOpen(false);
+      onSuccess();
+    } catch (_error) {
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -94,9 +88,7 @@ export function CompanyFormDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
-            {company ? "Edit Company" : "Add New Company"}
-          </DialogTitle>
+          <DialogTitle>{company ? "Edit Company" : "Add New Company"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -166,11 +158,7 @@ export function CompanyFormDialog({
               )}
             />
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={loading || !user}>
@@ -181,5 +169,5 @@ export function CompanyFormDialog({
         </Form>
       </DialogContent>
     </Dialog>
-  )
-} 
+  );
+}

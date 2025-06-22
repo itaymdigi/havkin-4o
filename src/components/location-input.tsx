@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { Input } from './ui/input';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "./ui/command";
+import { Input } from "./ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 interface LocationInputProps {
   value: string;
@@ -42,9 +42,8 @@ export function LocationInput({ value, onChange, placeholder }: LocationInputPro
       }
 
       setPredictions(data.predictions || []);
-    } catch (error) {
-      console.error('Error fetching predictions:', error);
-      setError('שגיאה בטעינת הצעות המיקום');
+    } catch (_error) {
+      setError("שגיאה בטעינת הצעות המיקום");
       setPredictions([]);
     }
   };
@@ -105,8 +104,8 @@ export function LocationInput({ value, onChange, placeholder }: LocationInputPro
                 >
                   <Check
                     className={cn(
-                      'mr-2 h-4 w-4',
-                      value === prediction.description ? 'opacity-100' : 'opacity-0'
+                      "mr-2 h-4 w-4",
+                      value === prediction.description ? "opacity-100" : "opacity-0"
                     )}
                   />
                   {prediction.description}
@@ -118,4 +117,4 @@ export function LocationInput({ value, onChange, placeholder }: LocationInputPro
       </PopoverContent>
     </Popover>
   );
-} 
+}

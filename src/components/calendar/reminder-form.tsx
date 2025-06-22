@@ -1,10 +1,12 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { Button } from "@/components/ui/button"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "react-hot-toast";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -12,37 +14,35 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Trash2 } from "lucide-react"
-import { getEventReminders, createReminder, deleteReminder } from "@/lib/reminders"
-import type { Reminder } from "@/types"
-import { toast } from "react-hot-toast"
+} from "@/components/ui/select";
+import { createReminder, deleteReminder, getEventReminders } from "@/lib/reminders";
+import type { Reminder } from "@/types";
 
 const reminderSchema = z.object({
   remind_at: z.string().min(1, "Reminder time is required"),
   type: z.enum(["email", "notification"], {
     required_error: "Reminder type is required",
   }),
-})
+});
 
-type ReminderFormValues = z.infer<typeof reminderSchema>
+type ReminderFormValues = z.infer<typeof reminderSchema>;
 
 interface ReminderFormProps {
-  eventId: string
-  eventStartTime: string
+  eventId: string;
+  eventStartTime: string;
 }
 
 export function ReminderForm({ eventId, eventStartTime }: ReminderFormProps) {
-  const [reminders, setReminders] = useState<Reminder[]>([])
-  const [loading, setLoading] = useState(false)
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const form = useForm<ReminderFormValues>({
     resolver: zodResolver(reminderSchema),
@@ -50,52 +50,48 @@ export function ReminderForm({ eventId, eventStartTime }: ReminderFormProps) {
       remind_at: "",
       type: "notification",
     },
-  })
+  });
 
   const loadReminders = useCallback(async () => {
     try {
-      const data = await getEventReminders(eventId)
-      setReminders(data)
-    } catch (error) {
-      console.error('Error loading reminders:', error)
-      toast.error('שגיאה בטעינת תזכורות')
+      const data = await getEventReminders(eventId);
+      setReminders(data);
+    } catch (_error) {
+      toast.error("שגיאה בטעינת תזכורות");
     }
-  }, [eventId])
+  }, [eventId]);
 
   useEffect(() => {
-    loadReminders()
-  }, [eventId, loadReminders])
+    loadReminders();
+  }, [loadReminders]);
 
   async function onSubmit(data: ReminderFormValues) {
     try {
-      setLoading(true)
+      setLoading(true);
       await createReminder({
         event_id: eventId,
         remind_at: data.remind_at,
         type: data.type,
-      })
-      form.reset()
-      await loadReminders()
-    } catch (error) {
-      console.error("Failed to create reminder:", error)
+      });
+      form.reset();
+      await loadReminders();
+    } catch (_error) {
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function handleDeleteReminder(id: string) {
     try {
-      await deleteReminder(id)
-      await loadReminders()
-    } catch (error) {
-      console.error("Failed to delete reminder:", error)
-    }
+      await deleteReminder(id);
+      await loadReminders();
+    } catch (_error) {}
   }
 
   return (
     <div className="space-y-4">
       <h3 className="font-medium">Reminders</h3>
-      
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -106,11 +102,7 @@ export function ReminderForm({ eventId, eventStartTime }: ReminderFormProps) {
                 <FormItem>
                   <FormLabel>Remind At</FormLabel>
                   <FormControl>
-                    <Input
-                      type="datetime-local"
-                      {...field}
-                      max={eventStartTime}
-                    />
+                    <Input type="datetime-local" {...field} max={eventStartTime} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -122,10 +114,7 @@ export function ReminderForm({ eventId, eventStartTime }: ReminderFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
@@ -154,23 +143,15 @@ export function ReminderForm({ eventId, eventStartTime }: ReminderFormProps) {
             className="flex items-center justify-between p-2 border rounded-lg"
           >
             <div>
-              <p className="font-medium">
-                {new Date(reminder.remind_at).toLocaleString()}
-              </p>
-              <p className="text-sm text-muted-foreground capitalize">
-                {reminder.type}
-              </p>
+              <p className="font-medium">{new Date(reminder.remind_at).toLocaleString()}</p>
+              <p className="text-sm text-muted-foreground capitalize">{reminder.type}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDeleteReminder(reminder.id)}
-            >
+            <Button variant="ghost" size="icon" onClick={() => handleDeleteReminder(reminder.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         ))}
       </div>
     </div>
-  )
-} 
+  );
+}

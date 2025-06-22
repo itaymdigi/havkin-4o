@@ -1,29 +1,26 @@
-import { createBrowserClient } from '@supabase/ssr';
-import { PriceOffer } from '@/types/price-offer';
-import { supabaseConfig } from '@/config/supabase';
-import { createServerSupabaseServiceClient } from './supabase-server';
+import { createBrowserClient } from "@supabase/ssr";
+import { supabaseConfig } from "@/config/supabase";
+import type { PriceOffer } from "@/types/price-offer";
+import { createServerSupabaseServiceClient } from "./supabase-server";
 
 // Client-side function (for browser usage)
 export async function savePriceOffer(priceOffer: PriceOffer, userId: string) {
-  const supabase = createBrowserClient(
-    supabaseConfig.url,
-    supabaseConfig.anonKey
-  );
+  const supabase = createBrowserClient(supabaseConfig.url, supabaseConfig.anonKey);
 
   try {
     // Since we're using Clerk for auth, we don't need to verify Supabase session
     // Just validate that we have a userId from Clerk
     if (!userId) {
-      throw new Error('User ID is required');
+      throw new Error("User ID is required");
     }
 
     // First, create the price offer record
     const { data: offer, error: offerError } = await supabase
-      .from('price_offers')
+      .from("price_offers")
       .insert({
         id: priceOffer.id,
         user_id: userId,
-        status: 'draft',
+        status: "draft",
         valid_until: new Date(priceOffer.validUntil).toISOString(),
         total_amount: priceOffer.total,
         notes: priceOffer.notes || null,
@@ -34,18 +31,17 @@ export async function savePriceOffer(priceOffer: PriceOffer, userId: string) {
         customer_address: priceOffer.customer.address,
         customer_company: priceOffer.customer.company || null,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single();
 
     if (offerError) {
-      console.error('Error creating price offer:', offerError);
       throw new Error(`Failed to create price offer: ${offerError.message}`);
     }
 
     // Then, create the price offer items
-    const items = priceOffer.items.map(item => ({
+    const items = priceOffer.items.map((item) => ({
       id: crypto.randomUUID(),
       price_offer_id: offer.id,
       description: item.description,
@@ -53,27 +49,23 @@ export async function savePriceOffer(priceOffer: PriceOffer, userId: string) {
       unit_price: item.unitPrice,
       currency: item.currency,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     }));
 
-    const { error: itemsError } = await supabase
-      .from('price_offer_items')
-      .insert(items);
+    const { error: itemsError } = await supabase.from("price_offer_items").insert(items);
 
     if (itemsError) {
-      console.error('Error creating price offer items:', itemsError);
       // If items fail to create, delete the price offer to maintain consistency
-      await supabase.from('price_offers').delete().eq('id', offer.id);
+      await supabase.from("price_offers").delete().eq("id", offer.id);
       throw new Error(`Failed to create price offer items: ${itemsError.message}`);
     }
 
     return offer;
   } catch (error) {
-    console.error('Error in savePriceOffer:', error);
     if (error instanceof Error) {
       throw new Error(error.message);
     }
-    throw new Error('Failed to save price offer');
+    throw new Error("Failed to save price offer");
   }
 }
 
@@ -83,16 +75,16 @@ export async function savePriceOfferServer(priceOffer: PriceOffer, userId: strin
 
   try {
     if (!userId) {
-      throw new Error('User ID is required');
+      throw new Error("User ID is required");
     }
 
     // First, create the price offer record
     const { data: offer, error: offerError } = await supabase
-      .from('price_offers')
+      .from("price_offers")
       .insert({
         id: priceOffer.id,
         user_id: userId,
-        status: 'draft',
+        status: "draft",
         valid_until: new Date(priceOffer.validUntil).toISOString(),
         total_amount: priceOffer.total,
         notes: priceOffer.notes || null,
@@ -102,18 +94,17 @@ export async function savePriceOfferServer(priceOffer: PriceOffer, userId: strin
         customer_address: priceOffer.customer.address,
         customer_company: priceOffer.customer.company || null,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single();
 
     if (offerError) {
-      console.error('Error creating price offer:', offerError);
       throw new Error(`Failed to create price offer: ${offerError.message}`);
     }
 
     // Then, create the price offer items
-    const items = priceOffer.items.map(item => ({
+    const items = priceOffer.items.map((item) => ({
       id: crypto.randomUUID(),
       price_offer_id: offer.id,
       description: item.description,
@@ -121,27 +112,23 @@ export async function savePriceOfferServer(priceOffer: PriceOffer, userId: strin
       unit_price: item.unitPrice,
       currency: item.currency,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     }));
 
-    const { error: itemsError } = await supabase
-      .from('price_offer_items')
-      .insert(items);
+    const { error: itemsError } = await supabase.from("price_offer_items").insert(items);
 
     if (itemsError) {
-      console.error('Error creating price offer items:', itemsError);
       // If items fail to create, delete the price offer to maintain consistency
-      await supabase.from('price_offers').delete().eq('id', offer.id);
+      await supabase.from("price_offers").delete().eq("id", offer.id);
       throw new Error(`Failed to create price offer items: ${itemsError.message}`);
     }
 
     return offer;
   } catch (error) {
-    console.error('Error in savePriceOfferServer:', error);
     if (error instanceof Error) {
       throw new Error(error.message);
     }
-    throw new Error('Failed to save price offer');
+    throw new Error("Failed to save price offer");
   }
 }
 
@@ -152,16 +139,15 @@ export async function getPriceOffer(priceOfferId: string) {
   try {
     // Get the price offer with its items
     const { data: offer, error: offerError } = await supabase
-      .from('price_offers')
+      .from("price_offers")
       .select(`
         *,
         price_offer_items (*)
       `)
-      .eq('id', priceOfferId)
+      .eq("id", priceOfferId)
       .single();
 
     if (offerError) {
-      console.error('Error fetching price offer:', offerError);
       return null;
     }
 
@@ -184,8 +170,7 @@ export async function getPriceOffer(priceOfferId: string) {
     };
 
     return transformedOffer;
-  } catch (error) {
-    console.error('Error in getPriceOffer:', error);
+  } catch (_error) {
     return null;
   }
-} 
+}

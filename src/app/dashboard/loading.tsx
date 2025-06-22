@@ -1,5 +1,5 @@
-import { Skeleton } from "@/components/ui/skeleton"
-import { DashboardLayout } from "@/components/dashboard-layout"
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
@@ -38,5 +38,5 @@ export default function Loading() {
         </div>
       </div>
     </DashboardLayout>
-  )
-} 
+  );
+}

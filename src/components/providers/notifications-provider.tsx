@@ -1,124 +1,119 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/lib/notifications"
-import { supabase } from "@/lib/supabase"
-import { useUser } from "@clerk/nextjs"
-import type { Notification } from "@/types"
+import { useUser } from "@clerk/nextjs";
+import { createContext, useContext, useEffect, useState } from "react";
+import {
+  getNotifications,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+} from "@/lib/notifications";
+import { supabase } from "@/lib/supabase";
+import type { Notification } from "@/types";
 
 interface NotificationsContextType {
-  notifications: Notification[]
-  unreadCount: number
-  isLoading: boolean
-  error: string | null
-  markAsRead: (id: string) => Promise<void>
-  markAllAsRead: () => Promise<void>
-  refreshNotifications: () => Promise<void>
+  notifications: Notification[];
+  unreadCount: number;
+  isLoading: boolean;
+  error: string | null;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  refreshNotifications: () => Promise<void>;
 }
 
-const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined)
+const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  if (typeof error === 'string') return error
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
   try {
-    return JSON.stringify(error)
+    return JSON.stringify(error);
   } catch {
-    return String(error)
+    return String(error);
   }
 }
 
-export function NotificationsProvider({ 
-  children 
-}: { 
-  children: React.ReactNode 
-}): JSX.Element {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const { isSignedIn, isLoaded } = useUser()
+export function NotificationsProvider({ children }: { children: React.ReactNode }): JSX.Element {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { isSignedIn, isLoaded } = useUser();
 
   const refreshNotifications = async (): Promise<void> => {
     try {
-      setIsLoading(true)
-      setError(null)
-      const data = await getNotifications()
-      setNotifications(data)
+      setIsLoading(true);
+      setError(null);
+      const data = await getNotifications();
+      setNotifications(data);
     } catch (error) {
-      const message = getErrorMessage(error)
-      console.error("Failed to fetch notifications:", message)
-      setError(message)
+      const message = getErrorMessage(error);
+      setError(message);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    let isMounted = true
+    let isMounted = true;
 
     const fetchInitialNotifications = async (): Promise<void> => {
-      if (!isMounted || !isLoaded) return
-      
-      if (isSignedIn) {
-        await refreshNotifications()
-      } else {
-        setNotifications([])
-        setIsLoading(false)
-      }
-    }
+      if (!isMounted || !isLoaded) return;
 
-    void fetchInitialNotifications()
-    
+      if (isSignedIn) {
+        await refreshNotifications();
+      } else {
+        setNotifications([]);
+        setIsLoading(false);
+      }
+    };
+
+    void fetchInitialNotifications();
+
     // Set up real-time subscription for notifications
-    let channel: ReturnType<typeof supabase.channel> | null = null
+    let channel: ReturnType<typeof supabase.channel> | null = null;
     if (isSignedIn) {
       channel = supabase
-        .channel('notifications')
+        .channel("notifications")
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications'
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
           },
           async () => {
-            if (!isMounted) return
-            await refreshNotifications()
+            if (!isMounted) return;
+            await refreshNotifications();
           }
         )
-        .subscribe()
+        .subscribe();
     }
 
     return () => {
-      isMounted = false
+      isMounted = false;
       if (channel) {
-        void supabase.removeChannel(channel)
+        void supabase.removeChannel(channel);
       }
-    }
-  }, [isSignedIn, isLoaded])
+    };
+  }, [isSignedIn, isLoaded, refreshNotifications]);
 
   const markAsRead = async (id: string): Promise<void> => {
     try {
-      await markNotificationAsRead(id)
-      await refreshNotifications()
-    } catch (error) {
-      console.error("Failed to mark notification as read:", getErrorMessage(error))
-    }
-  }
+      await markNotificationAsRead(id);
+      await refreshNotifications();
+    } catch (_error) {}
+  };
 
   const markAllAsRead = async (): Promise<void> => {
     try {
-      await markAllNotificationsAsRead()
-      await refreshNotifications()
-    } catch (error) {
-      console.error("Failed to mark all notifications as read:", getErrorMessage(error))
-    }
-  }
+      await markAllNotificationsAsRead();
+      await refreshNotifications();
+    } catch (_error) {}
+  };
 
-  const unreadCount = notifications.filter((notification) => !notification.read).length
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
 
   return (
-    <NotificationsContext.Provider 
+    <NotificationsContext.Provider
       value={{
         notifications,
         unreadCount,
@@ -126,18 +121,18 @@ export function NotificationsProvider({
         error,
         markAsRead,
         markAllAsRead,
-        refreshNotifications
+        refreshNotifications,
       }}
     >
       {children}
     </NotificationsContext.Provider>
-  )
+  );
 }
 
 export function useNotifications(): NotificationsContextType {
-  const context = useContext(NotificationsContext)
+  const context = useContext(NotificationsContext);
   if (!context) {
-    throw new Error('useNotifications must be used within a NotificationsProvider')
+    throw new Error("useNotifications must be used within a NotificationsProvider");
   }
-  return context
-} 
+  return context;
+}

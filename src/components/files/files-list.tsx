@@ -1,52 +1,52 @@
-"use client"
+"use client";
 
-import { forwardRef, useImperativeHandle, useEffect, useState, useCallback } from "react"
-import { FileText, Trash2, Download } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { useToast } from "@/components/ui/use-toast"
-import { formatBytes } from "@/lib/utils"
-import { formatDistanceToNow } from "date-fns"
+import { formatDistanceToNow } from "date-fns";
+import { Download, FileText, Trash2 } from "lucide-react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
+import { formatBytes } from "@/lib/utils";
 
 interface File {
-  id: string
-  name: string
-  path: string
-  size: number
-  type: string
-  created_at: string
+  id: string;
+  name: string;
+  path: string;
+  size: number;
+  type: string;
+  created_at: string;
 }
 
 interface DatabaseFile {
-  id: string
-  name: string
-  file_path: string
-  size_bytes?: number
-  file_type?: string
-  created_at: string
+  id: string;
+  name: string;
+  file_path: string;
+  size_bytes?: number;
+  file_type?: string;
+  created_at: string;
 }
 
 export interface FilesListRef {
-  fetchFiles: () => Promise<void>
+  fetchFiles: () => Promise<void>;
 }
 
-export const FilesList = forwardRef<FilesListRef>((props, ref) => {
-  const [files, setFiles] = useState<File[]>([])
-  const [loading, setLoading] = useState(true)
-  const { toast } = useToast()
+export const FilesList = forwardRef<FilesListRef>((_props, ref) => {
+  const [files, setFiles] = useState<File[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   const fetchFiles = useCallback(async () => {
     try {
-      setLoading(true)
-      
+      setLoading(true);
+
       // Fetch files from API
-      const response = await fetch('/api/files')
-      
+      const response = await fetch("/api/files");
+
       if (!response.ok) {
-        throw new Error('Failed to fetch files')
+        throw new Error("Failed to fetch files");
       }
 
-      const dbFiles = await response.json()
+      const dbFiles = await response.json();
 
       // Transform database files into the File interface format
       const transformedFiles: File[] = (dbFiles || []).map((file: DatabaseFile) => ({
@@ -54,94 +54,87 @@ export const FilesList = forwardRef<FilesListRef>((props, ref) => {
         name: file.name,
         path: file.file_path,
         size: file.size_bytes || 0,
-        type: file.file_type || 'application/octet-stream',
-        created_at: file.created_at
-      }))
+        type: file.file_type || "application/octet-stream",
+        created_at: file.created_at,
+      }));
 
-      setFiles(transformedFiles)
-    } catch (error) {
-      console.error('Error fetching files:', error)
+      setFiles(transformedFiles);
+    } catch (_error) {
       toast({
         title: "Error",
         description: "Failed to fetch files",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [toast])
+  }, [toast]);
 
   const handleDownload = async (file: File) => {
     try {
-      const response = await fetch(`/api/files/${file.id}/download`)
-      
+      const response = await fetch(`/api/files/${file.id}/download`);
+
       if (!response.ok) {
-        throw new Error('Failed to download file')
+        throw new Error("Failed to download file");
       }
 
       // Get the file blob
-      const blob = await response.blob()
-      
+      const blob = await response.blob();
+
       // Create a download link
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = file.name
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Error downloading file:', error)
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (_error) {
       toast({
         title: "Error",
         description: "Failed to download file",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleDelete = async (file: File) => {
     try {
       // Only update local state
-      setFiles(files.filter(f => f.id !== file.id))
+      setFiles(files.filter((f) => f.id !== file.id));
 
       toast({
         title: "Success",
         description: "File hidden from view",
-      })
-    } catch (error) {
-      console.error('Error hiding file:', error)
+      });
+    } catch (_error) {
       toast({
         title: "Error",
         description: "Failed to hide file from view",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   useEffect(() => {
-    fetchFiles()
-  }, [fetchFiles])
+    fetchFiles();
+  }, [fetchFiles]);
 
   useImperativeHandle(ref, () => ({
-    fetchFiles
-  }))
+    fetchFiles,
+  }));
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-32">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />
       </div>
-    )
+    );
   }
 
   if (files.length === 0) {
-    return (
-      <Card className="p-6 text-center text-muted-foreground">
-        No files uploaded yet
-      </Card>
-    )
+    return <Card className="p-6 text-center text-muted-foreground">No files uploaded yet</Card>;
   }
 
   return (
@@ -161,18 +154,10 @@ export const FilesList = forwardRef<FilesListRef>((props, ref) => {
               </div>
             </div>
             <div className="flex space-x-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDownload(file)}
-              >
+              <Button variant="ghost" size="icon" onClick={() => handleDownload(file)}>
                 <Download className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(file)}
-              >
+              <Button variant="ghost" size="icon" onClick={() => handleDelete(file)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
@@ -180,7 +165,7 @@ export const FilesList = forwardRef<FilesListRef>((props, ref) => {
         </Card>
       ))}
     </div>
-  )
-})
+  );
+});
 
-FilesList.displayName = "FilesList" 
+FilesList.displayName = "FilesList";

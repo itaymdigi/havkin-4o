@@ -1,18 +1,20 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { formatInTimeZone } from "date-fns-tz"
-import { addHours, parseISO } from "date-fns"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { addHours, parseISO } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { ReminderForm } from "@/components/calendar/reminder-form";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -20,21 +22,19 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { getContacts } from "@/lib/contacts"
-import { createCalendarEvent, updateCalendarEvent } from "@/lib/calendar-events"
-import { ReminderForm } from "@/components/calendar/reminder-form"
-import type { Contact, CalendarEvent } from "@/types"
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { createCalendarEvent, updateCalendarEvent } from "@/lib/calendar-events";
+import { getContacts } from "@/lib/contacts";
+import type { CalendarEvent, Contact } from "@/types";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -43,90 +43,82 @@ const eventSchema = z.object({
   end_time: z.string().min(1, "End time is required"),
   location: z.string().optional(),
   contact_id: z.string().nullable().default(null),
-})
+});
 
-type EventFormValues = z.infer<typeof eventSchema>
+type EventFormValues = z.infer<typeof eventSchema>;
 
 interface EventFormDialogProps {
-  event?: CalendarEvent
-  defaultDate?: Date
-  trigger: React.ReactNode
-  onSuccess: () => void
+  event?: CalendarEvent;
+  defaultDate?: Date;
+  trigger: React.ReactNode;
+  onSuccess: () => void;
 }
 
-export function EventFormDialog({
-  event,
-  defaultDate,
-  trigger,
-  onSuccess,
-}: EventFormDialogProps) {
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [contacts, setContacts] = useState<Contact[]>([])
+export function EventFormDialog({ event, defaultDate, trigger, onSuccess }: EventFormDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
 
   useEffect(() => {
     async function loadContacts() {
       try {
-        const data = await getContacts()
-        setContacts(data)
-      } catch (error) {
-        console.error("Failed to load contacts:", error)
-      }
+        const data = await getContacts();
+        setContacts(data);
+      } catch (_error) {}
     }
-    loadContacts()
-  }, [])
+    loadContacts();
+  }, []);
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
       title: event?.title || "",
       description: event?.description || "",
-      start_time: event?.start_time 
-        ? formatInTimeZone(parseISO(event.start_time), 'Asia/Jerusalem', "yyyy-MM-dd'T'HH:mm")
+      start_time: event?.start_time
+        ? formatInTimeZone(parseISO(event.start_time), "Asia/Jerusalem", "yyyy-MM-dd'T'HH:mm")
         : defaultDate
-        ? formatInTimeZone(defaultDate, 'Asia/Jerusalem', "yyyy-MM-dd'T'HH:mm")
-        : "",
+          ? formatInTimeZone(defaultDate, "Asia/Jerusalem", "yyyy-MM-dd'T'HH:mm")
+          : "",
       end_time: event?.end_time
-        ? formatInTimeZone(parseISO(event.end_time), 'Asia/Jerusalem', "yyyy-MM-dd'T'HH:mm")
+        ? formatInTimeZone(parseISO(event.end_time), "Asia/Jerusalem", "yyyy-MM-dd'T'HH:mm")
         : defaultDate
-        ? formatInTimeZone(addHours(defaultDate, 1), 'Asia/Jerusalem', "yyyy-MM-dd'T'HH:mm")
-        : "",
+          ? formatInTimeZone(addHours(defaultDate, 1), "Asia/Jerusalem", "yyyy-MM-dd'T'HH:mm")
+          : "",
       location: event?.location || "",
       contact_id: event?.contact_id || "none",
     },
-  })
+  });
 
   async function onSubmit(data: EventFormValues) {
     try {
-      setLoading(true)
-      
+      setLoading(true);
+
       // Convert local datetime to UTC ISO string
       const startDate = new Date(data.start_time);
       const endDate = new Date(data.end_time);
-      
+
       const formattedData = {
         ...data,
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
         description: data.description || null,
         location: data.location || null,
-      }
-      
+      };
+
       if (event) {
-        await updateCalendarEvent(event.id, formattedData)
+        await updateCalendarEvent(event.id, formattedData);
       } else {
-        await createCalendarEvent({ 
+        await createCalendarEvent({
           ...formattedData,
           user_id: "default_user_id",
-          contact_id: data.contact_id === "none" ? null : data.contact_id
-        })
+          contact_id: data.contact_id === "none" ? null : data.contact_id,
+        });
       }
-      setOpen(false)
-      onSuccess()
-    } catch (error) {
-      console.error("Failed to save event:", error)
+      setOpen(false);
+      onSuccess();
+    } catch (_error) {
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -135,9 +127,7 @@ export function EventFormDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
-            {event ? "Edit Event" : "Add New Event"}
-          </DialogTitle>
+          <DialogTitle>{event ? "Edit Event" : "Add New Event"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -214,10 +204,7 @@ export function EventFormDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Related Contact</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value || "none"}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value || "none"}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a contact" />
@@ -237,11 +224,7 @@ export function EventFormDialog({
               )}
             />
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
@@ -254,13 +237,10 @@ export function EventFormDialog({
         {event && (
           <>
             <Separator className="my-4" />
-            <ReminderForm
-              eventId={event.id}
-              eventStartTime={event.start_time}
-            />
+            <ReminderForm eventId={event.id} eventStartTime={event.start_time} />
           </>
         )}
       </DialogContent>
     </Dialog>
-  )
-} 
+  );
+}

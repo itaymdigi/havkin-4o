@@ -1,9 +1,18 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useMemo } from "react"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { CompanyFormDialog } from "@/components/companies/company-form-dialog"
-import { SearchInput } from "@/components/ui/search-input"
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CompanyFormDialog } from "@/components/companies/company-form-dialog";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -11,72 +20,59 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Plus, Pencil, Trash2 } from "lucide-react"
-import { getCompanies, deleteCompany } from "@/lib/companies"
-import type { Company } from "@/types"
+} from "@/components/ui/table";
+import { deleteCompany, getCompanies } from "@/lib/companies";
+import type { Company } from "@/types";
 
 export default function CompaniesPage() {
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [industryFilter, setIndustryFilter] = useState<string>("all")
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [industryFilter, setIndustryFilter] = useState<string>("all");
 
   useEffect(() => {
-    loadCompanies()
-  }, [])
+    loadCompanies();
+  }, [loadCompanies]);
 
   async function loadCompanies() {
     try {
-      const data = await getCompanies()
-      setCompanies(data)
-    } catch (error) {
-      console.error("Failed to load companies:", error)
+      const data = await getCompanies();
+      setCompanies(data);
+    } catch (_error) {
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function handleDelete(id: string) {
     if (confirm("Are you sure you want to delete this company?")) {
       try {
-        await deleteCompany(id)
-        setCompanies(companies.filter(company => company.id !== id))
-      } catch (error) {
-        console.error("Failed to delete company:", error)
-      }
+        await deleteCompany(id);
+        setCompanies(companies.filter((company) => company.id !== id));
+      } catch (_error) {}
     }
   }
 
   // Get unique industries for filter
   const industries = useMemo(() => {
-    const uniqueIndustries = new Set(companies.map(c => c.industry).filter(Boolean))
-    return Array.from(uniqueIndustries)
-  }, [companies])
+    const uniqueIndustries = new Set(companies.map((c) => c.industry).filter(Boolean));
+    return Array.from(uniqueIndustries);
+  }, [companies]);
 
   // Filter companies based on search query and industry
   const filteredCompanies = useMemo(() => {
-    return companies.filter(company => {
-      const matchesSearch = 
+    return companies.filter((company) => {
+      const matchesSearch =
         company.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         company.industry?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         company.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        company.phone?.toLowerCase().includes(searchQuery.toLowerCase())
+        company.phone?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesIndustry = 
-        industryFilter === "all" || company.industry === industryFilter
+      const matchesIndustry = industryFilter === "all" || company.industry === industryFilter;
 
-      return matchesSearch && matchesIndustry
-    })
-  }, [companies, searchQuery, industryFilter])
+      return matchesSearch && matchesIndustry;
+    });
+  }, [companies, searchQuery, industryFilter]);
 
   return (
     <DashboardLayout>
@@ -84,9 +80,7 @@ export default function CompaniesPage() {
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Companies</h2>
-            <p className="text-muted-foreground">
-              Manage your companies and their information
-            </p>
+            <p className="text-muted-foreground">Manage your companies and their information</p>
           </div>
           <CompanyFormDialog
             trigger={
@@ -114,11 +108,11 @@ export default function CompaniesPage() {
             <SelectContent>
               <SelectItem value="all">All Industries</SelectItem>
               {industries.map((industry) => (
-                <SelectItem 
-                  key={industry} 
-                  value={industry ?? ''} // Handle potential null value
+                <SelectItem
+                  key={industry}
+                  value={industry ?? ""} // Handle potential null value
                 >
-                  {industry ?? 'Unknown Industry'} {/* Show fallback text if null */}
+                  {industry ?? "Unknown Industry"} {/* Show fallback text if null */}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -183,11 +177,7 @@ export default function CompaniesPage() {
                         }
                         onSuccess={loadCompanies}
                       />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(company.id)}
-                      >
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(company.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -199,5 +189,5 @@ export default function CompaniesPage() {
         </div>
       </div>
     </DashboardLayout>
-  )
-} 
+  );
+}

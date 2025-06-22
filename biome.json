@@ -8,7 +8,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["*/.{js,jsx,ts,tsx,json,css}"],
+    "includes": ["**/*.{js,jsx,ts,tsx,json,css}"],
     "experimentalScannerIgnores": [
       ".next/**",
       "node_modules/**",

@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { SidebarNav } from "./sidebar-nav"
-import { NotificationsDropdown } from "./notifications/notifications-dropdown"
-import { LogoutButton } from "./logout-button"
+import { LogoutButton } from "./logout-button";
+import { NotificationsDropdown } from "./notifications/notifications-dropdown";
+import { SidebarNav } from "./sidebar-nav";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -37,12 +37,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
         <main className="flex-1 pb-8">
           <div className="mt-8">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-              {children}
-            </div>
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">{children}</div>
           </div>
         </main>
       </div>
     </div>
-  )
-} 
+  );
+}

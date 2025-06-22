@@ -1,22 +1,29 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { format, parse } from 'date-fns';
-import { toast } from 'sonner';
-import { LocationInput } from '@/components/location-input';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format, parse } from "date-fns";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
+import { LocationInput } from "@/components/location-input";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const eventSchema = z.object({
-  title: z.string().min(1, 'כותרת האירוע נדרשת'),
+  title: z.string().min(1, "כותרת האירוע נדרשת"),
   description: z.string().optional(),
   location: z.string().optional(),
-  start_time: z.string().min(1, 'תאריך ושעת התחלה נדרשים'),
-  end_time: z.string().min(1, 'תאריך ושעת סיום נדרשים'),
+  start_time: z.string().min(1, "תאריך ושעת התחלה נדרשים"),
+  end_time: z.string().min(1, "תאריך ושעת סיום נדרשים"),
 });
 
 export type EventFormValues = z.infer<typeof eventSchema>;
@@ -28,7 +35,12 @@ interface NewEventFormProps {
   initialValues?: EventFormValues;
 }
 
-export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }: NewEventFormProps) {
+export function NewEventForm({
+  onSubmit,
+  onCancel,
+  initialDate,
+  initialValues,
+}: NewEventFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Format initial dates
@@ -42,12 +54,12 @@ export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }:
   }
 
   const formatDateForInput = (date: Date) => {
-    return format(date, 'dd/MM/yyyy HH:mm');
+    return format(date, "dd/MM/yyyy HH:mm");
   };
 
   const parseInputToDate = (value: string) => {
     try {
-      return parse(value, 'dd/MM/yyyy HH:mm', new Date());
+      return parse(value, "dd/MM/yyyy HH:mm", new Date());
     } catch {
       return null;
     }
@@ -56,9 +68,9 @@ export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }:
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
     defaultValues: initialValues || {
-      title: '',
-      description: '',
-      location: '',
+      title: "",
+      description: "",
+      location: "",
       start_time: formatDateForInput(now),
       end_time: formatDateForInput(oneHourLater),
     },
@@ -98,17 +110,17 @@ export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }:
               <FormItem>
                 <FormLabel>מועד התחלה</FormLabel>
                 <FormControl>
-                  <Input 
+                  <Input
                     placeholder="DD/MM/YYYY HH:mm"
                     value={value}
                     onChange={(e) => {
                       onChange(e.target.value);
                       const newStartDate = parseInputToDate(e.target.value);
                       if (newStartDate) {
-                        const currentEndDate = parseInputToDate(form.getValues('end_time'));
+                        const currentEndDate = parseInputToDate(form.getValues("end_time"));
                         if (currentEndDate && currentEndDate <= newStartDate) {
                           const newEndDate = new Date(newStartDate.getTime() + 60 * 60 * 1000);
-                          form.setValue('end_time', formatDateForInput(newEndDate));
+                          form.setValue("end_time", formatDateForInput(newEndDate));
                         }
                       }
                     }}
@@ -127,14 +139,14 @@ export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }:
               <FormItem>
                 <FormLabel>מועד סיום</FormLabel>
                 <FormControl>
-                  <Input 
+                  <Input
                     placeholder="DD/MM/YYYY HH:mm"
                     value={value}
                     onChange={(e) => {
                       const endDate = parseInputToDate(e.target.value);
-                      const startDate = parseInputToDate(form.getValues('start_time'));
+                      const startDate = parseInputToDate(form.getValues("start_time"));
                       if (endDate && startDate && endDate <= startDate) {
-                        toast.error('מועד הסיום חייב להיות אחרי מועד ההתחלה');
+                        toast.error("מועד הסיום חייב להיות אחרי מועד ההתחלה");
                         return;
                       }
                       onChange(e.target.value);
@@ -155,8 +167,8 @@ export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }:
             <FormItem>
               <FormLabel>מיקום</FormLabel>
               <FormControl>
-                <LocationInput 
-                  value={field.value || ''}
+                <LocationInput
+                  value={field.value || ""}
                   onChange={field.onChange}
                   placeholder="הכנס מיקום (אופציונלי)"
                 />
@@ -173,10 +185,10 @@ export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }:
             <FormItem>
               <FormLabel>תיאור</FormLabel>
               <FormControl>
-                <Textarea 
-                  placeholder="הכנס תיאור לאירוע (אופציונלי)" 
+                <Textarea
+                  placeholder="הכנס תיאור לאירוע (אופציונלי)"
                   className="min-h-[100px]"
-                  {...field} 
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
@@ -185,11 +197,7 @@ export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }:
         />
 
         <div className="flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-          >
+          <Button type="button" variant="outline" onClick={onCancel}>
             ביטול
           </Button>
           <Button type="submit" disabled={isSubmitting}>
@@ -198,12 +206,14 @@ export function NewEventForm({ onSubmit, onCancel, initialDate, initialValues }:
                 <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 שומר...
               </>
+            ) : initialValues ? (
+              "עדכן אירוע"
             ) : (
-              initialValues ? 'עדכן אירוע' : 'צור אירוע'
+              "צור אירוע"
             )}
           </Button>
         </div>
       </form>
     </Form>
   );
-} 
+}

@@ -1,25 +1,18 @@
-"use client"
+"use client";
 
-import { Bar } from "react-chartjs-2"
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
   BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
   Title,
   Tooltip,
-  Legend,
-} from "chart.js"
+} from "chart.js";
+import { Bar } from "react-chartjs-2";
 
 // Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-)
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 // Chart options
 const options = {
@@ -50,14 +43,14 @@ const options = {
       },
     },
   },
-}
+};
 
 interface BarChartProps {
   data: {
-    months: string[]
-    data2022: number[]
-    data2023: number[]
-  }
+    months: string[];
+    data2022: number[];
+    data2023: number[];
+  };
 }
 
 export function BarChart({ data }: BarChartProps) {
@@ -77,7 +70,7 @@ export function BarChart({ data }: BarChartProps) {
         borderRadius: 4,
       },
     ],
-  }
+  };
 
-  return <Bar options={options} data={chartData} />
-} 
+  return <Bar options={options} data={chartData} />;
+}

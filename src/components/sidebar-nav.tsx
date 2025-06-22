@@ -1,19 +1,19 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
 import {
   BarChart3,
-  Users,
+  Bell,
   Building2,
   Calendar,
   FileText,
-  Upload,
-  Bell,
+  MessageSquare,
   Settings,
-  MessageSquare
-} from "lucide-react"
+  Upload,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
@@ -25,15 +25,15 @@ const navigation = [
   { name: "Files", href: "/files", icon: Upload },
   { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Settings", href: "/settings", icon: Settings },
-]
+];
 
 export function SidebarNav() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <nav className="space-y-2 px-3">
       {navigation.map((item) => {
-        const isActive = pathname === item.href
+        const isActive = pathname === item.href;
         return (
           <Link
             key={item.name}
@@ -48,19 +48,15 @@ export function SidebarNav() {
             <item.icon
               className={cn(
                 "mr-3 h-5 w-5 transition-colors",
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground group-hover:text-foreground"
+                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
               )}
               aria-hidden="true"
             />
             <span className="font-medium">{item.name}</span>
-            {isActive && (
-              <div className="ml-auto h-2 w-2 rounded-full bg-primary" />
-            )}
+            {isActive && <div className="ml-auto h-2 w-2 rounded-full bg-primary" />}
           </Link>
-        )
+        );
       })}
     </nav>
-  )
-} 
+  );
+}

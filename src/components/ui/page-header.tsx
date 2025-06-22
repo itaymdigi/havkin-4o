@@ -1,13 +1,13 @@
-import { ArrowRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { Button } from './button';
+import { ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button } from "./button";
 
 interface PageHeaderProps {
   title: string;
   backUrl?: string;
 }
 
-export function PageHeader({ title, backUrl = '/dashboard' }: PageHeaderProps) {
+export function PageHeader({ title, backUrl = "/dashboard" }: PageHeaderProps) {
   const router = useRouter();
 
   return (
@@ -25,4 +25,4 @@ export function PageHeader({ title, backUrl = '/dashboard' }: PageHeaderProps) {
       </div>
     </div>
   );
-} 
+}

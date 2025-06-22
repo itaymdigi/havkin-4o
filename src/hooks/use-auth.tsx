@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useUser } from '@clerk/nextjs';
+import { useUser } from "@clerk/nextjs";
 
 /**
  * Custom hook that provides authentication state using Clerk
@@ -15,4 +15,4 @@ export function useAuth() {
     isLoading: !isLoaded,
     userId: user?.id,
   };
-} 
+}

@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { Bell } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { formatDistanceToNow } from "date-fns";
+import { Bell } from "lucide-react";
+import { useNotifications } from "@/components/providers/notifications-provider";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useNotifications } from "@/components/providers/notifications-provider"
-import { formatDistanceToNow } from "date-fns"
+} from "@/components/ui/dropdown-menu";
 
 export function NotificationsDropdown() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
   return (
     <DropdownMenu>
@@ -30,32 +30,24 @@ export function NotificationsDropdown() {
         <div className="flex items-center justify-between px-4 py-2 border-b">
           <h2 className="font-semibold">Notifications</h2>
           {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => markAllAsRead()}
-            >
+            <Button variant="ghost" size="sm" onClick={() => markAllAsRead()}>
               Mark all as read
             </Button>
           )}
         </div>
         <div className="max-h-96 overflow-y-auto">
           {notifications.length === 0 ? (
-            <div className="px-4 py-2 text-sm text-muted-foreground">
-              No notifications
-            </div>
+            <div className="px-4 py-2 text-sm text-muted-foreground">No notifications</div>
           ) : (
             notifications.map((notification) => (
               <DropdownMenuItem
                 key={notification.id}
-                className={`px-4 py-2 cursor-pointer ${!notification.read ? 'bg-muted/50' : ''}`}
+                className={`px-4 py-2 cursor-pointer ${!notification.read ? "bg-muted/50" : ""}`}
                 onClick={() => markAsRead(notification.id)}
               >
                 <div className="flex flex-col gap-1">
                   <div className="font-medium">{notification.title}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {notification.message}
-                  </div>
+                  <div className="text-sm text-muted-foreground">{notification.message}</div>
                   <div className="text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                   </div>
@@ -66,5 +58,5 @@ export function NotificationsDropdown() {
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
-} 
+  );
+}

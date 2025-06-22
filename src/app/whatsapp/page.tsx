@@ -1,187 +1,194 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { DashboardLayout } from '@/components/dashboard-layout'
-import { PageHeader } from '@/components/ui/page-header'
-import { WhatsAppStatus } from '@/components/whatsapp/whatsapp-status'
-import { WhatsAppSendDialog } from '@/components/whatsapp/whatsapp-send-dialog'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { toast } from 'sonner'
-import { MessageSquare, FileText, Users, Settings, Send, AlertCircle, CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  FileText,
+  MessageSquare,
+  RefreshCw,
+  Send,
+  Settings,
+  Users,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { WhatsAppSendDialog } from "@/components/whatsapp/whatsapp-send-dialog";
+import { WhatsAppStatus } from "@/components/whatsapp/whatsapp-status";
 
 interface WhatsAppInstanceData {
-  configured: boolean
-  instanceID: string
-  status: string
-  statusDetails?: any
-  lastChecked: string
-  apiResponseStatus?: number
-  error?: string
-  suggestion?: string
+  configured: boolean;
+  instanceID: string;
+  status: string;
+  statusDetails?: Record<string, unknown>;
+  lastChecked: string;
+  apiResponseStatus?: number;
+  error?: string;
+  suggestion?: string;
 }
 
 interface ApiResponse {
-  success: boolean
-  data?: WhatsAppInstanceData
-  error?: string
-  message?: string
+  success: boolean;
+  data?: WhatsAppInstanceData;
+  error?: string;
+  message?: string;
 }
 
 export default function WhatsAppPage() {
-  const [showSendDialog, setShowSendDialog] = useState(false)
-  const [testPhone, setTestPhone] = useState('')
-  const [testMessage, setTestMessage] = useState('שלום! זוהי הודעת בדיקה מ-CRM חבקין 👋')
-  const [instanceData, setInstanceData] = useState<WhatsAppInstanceData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [testPhone, setTestPhone] = useState("");
+  const [testMessage, setTestMessage] = useState("שלום! זוהי הודעת בדיקה מ-CRM חבקין 👋");
+  const [instanceData, setInstanceData] = useState<WhatsAppInstanceData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
 
   const handleQuickSend = () => {
     if (!testPhone.trim()) {
-      toast.error('נא להזין מספר טלפון')
-      return
+      toast.error("נא להזין מספר טלפון");
+      return;
     }
-    setShowSendDialog(true)
-  }
+    setShowSendDialog(true);
+  };
 
   const fetchInstanceStatus = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      
-      const response = await fetch('/api/whatsapp/instance')
-      const data: ApiResponse = await response.json()
-      
-      console.log('WhatsApp instance API response:', data)
-      
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch("/api/whatsapp/instance");
+      const data: ApiResponse = await response.json();
+
       if (data.success && data.data) {
-        setInstanceData(data.data)
+        setInstanceData(data.data);
       } else {
-        setError(data.error || 'Failed to fetch instance status')
+        setError(data.error || "Failed to fetch instance status");
         // Still set instance data if available for debugging
         if (data.data) {
-          setInstanceData(data.data)
+          setInstanceData(data.data);
         }
       }
     } catch (err) {
-      console.error('Error fetching WhatsApp instance status:', err)
-      setError(err instanceof Error ? err.message : 'Network error')
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const performAction = async (action: string) => {
     try {
-      setActionLoading(action)
-      setError(null)
-      
-      const response = await fetch('/api/whatsapp/instance', {
-        method: 'POST',
+      setActionLoading(action);
+      setError(null);
+
+      const response = await fetch("/api/whatsapp/instance", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ action }),
-      })
-      
-      const data = await response.json()
-      console.log(`WhatsApp ${action} response:`, data)
-      
+      });
+
+      const data = await response.json();
+
       if (data.success) {
         // Refresh status after action
-        await fetchInstanceStatus()
+        await fetchInstanceStatus();
       } else {
-        setError(data.error || `Failed to ${action} instance`)
+        setError(data.error || `Failed to ${action} instance`);
       }
     } catch (err) {
-      console.error(`Error performing ${action}:`, err)
-      setError(err instanceof Error ? err.message : 'Network error')
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
-      setActionLoading(null)
+      setActionLoading(null);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchInstanceStatus()
-  }, [])
+    fetchInstanceStatus();
+  }, [fetchInstanceStatus]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status?.toLowerCase()) {
-      case 'connected':
-      case 'ready':
-        return 'success'
-      case 'connecting':
-      case 'starting':
-        return 'warning'
-      case 'disconnected':
-      case 'stopped':
-      case 'error':
-      case 'api_error':
-      case 'connection_error':
-        return 'destructive'
+      case "connected":
+      case "ready":
+        return "default";
+      case "connecting":
+      case "starting":
+        return "secondary";
+      case "disconnected":
+      case "stopped":
+      case "error":
+      case "api_error":
+      case "connection_error":
+        return "destructive";
       default:
-        return 'secondary'
+        return "outline";
     }
-  }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'connected':
-      case 'ready':
-        return <CheckCircle className="h-4 w-4" />
-      case 'connecting':
-      case 'starting':
-        return <Clock className="h-4 w-4" />
-      case 'error':
-      case 'api_error':
-      case 'connection_error':
-        return <XCircle className="h-4 w-4" />
+      case "connected":
+      case "ready":
+        return <CheckCircle className="h-4 w-4" />;
+      case "connecting":
+      case "starting":
+        return <Clock className="h-4 w-4" />;
+      case "error":
+      case "api_error":
+      case "connection_error":
+        return <XCircle className="h-4 w-4" />;
       default:
-        return <AlertCircle className="h-4 w-4" />
+        return <AlertCircle className="h-4 w-4" />;
     }
-  }
+  };
 
   const features = [
     {
       icon: MessageSquare,
-      title: 'שליחת הודעות',
-      description: 'שלח הודעות טקסט ללקוחות דרך WhatsApp',
-      color: 'text-blue-600',
+      title: "שליחת הודעות",
+      description: "שלח הודעות טקסט ללקוחות דרך WhatsApp",
+      color: "text-blue-600",
     },
     {
       icon: FileText,
-      title: 'שליחת קבצים',
-      description: 'שלח הצעות מחיר, חשבוניות ומסמכים כקבצי PDF',
-      color: 'text-red-600',
+      title: "שליחת קבצים",
+      description: "שלח הצעות מחיר, חשבוניות ומסמכים כקבצי PDF",
+      color: "text-red-600",
     },
     {
       icon: Users,
-      title: 'ניהול קבוצות',
-      description: 'צור וניהל קבוצות WhatsApp ללקוחות',
-      color: 'text-purple-600',
+      title: "ניהול קבוצות",
+      description: "צור וניהל קבוצות WhatsApp ללקוחות",
+      color: "text-purple-600",
     },
     {
       icon: Settings,
-      title: 'אוטומציה',
-      description: 'הגדר תזכורות אוטומטיות ומעקב אחר לקוחות',
-      color: 'text-orange-600',
+      title: "אוטומציה",
+      description: "הגדר תזכורות אוטומטיות ומעקב אחר לקוחות",
+      color: "text-orange-600",
     },
-  ]
+  ];
 
   return (
     <DashboardLayout>
       <div className="container mx-auto p-6" dir="rtl">
-        <PageHeader 
-          title="WhatsApp Integration"
-        />
-        <p className="text-muted-foreground mb-6 text-right">נהל את החיבור שלך ל-WhatsApp ושלח הודעות ללקוחות</p>
+        <PageHeader title="WhatsApp Integration" />
+        <p className="text-muted-foreground mb-6 text-right">
+          נהל את החיבור שלך ל-WhatsApp ושלח הודעות ללקוחות
+        </p>
 
         {/* Error Alert */}
         {error && (
@@ -189,9 +196,13 @@ export default function WhatsAppPage() {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-2">
-                <p><strong>Error:</strong> {error}</p>
+                <p>
+                  <strong>Error:</strong> {error}
+                </p>
                 {instanceData?.suggestion && (
-                  <p><strong>Suggestion:</strong> {instanceData.suggestion}</p>
+                  <p>
+                    <strong>Suggestion:</strong> {instanceData.suggestion}
+                  </p>
                 )}
               </div>
             </AlertDescription>
@@ -216,13 +227,14 @@ export default function WhatsAppPage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {features.map((feature, index) => (
-                    <div key={index} className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/30 transition-colors">
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/30 transition-colors"
+                    >
                       <feature.icon className={`h-6 w-6 ${feature.color} mt-1 flex-shrink-0`} />
                       <div className="text-right">
                         <h4 className="font-semibold">{feature.title}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {feature.description}
-                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">{feature.description}</p>
                       </div>
                     </div>
                   ))}
@@ -246,13 +258,15 @@ export default function WhatsAppPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-3">
-                <Label htmlFor="test-phone" className="text-right">מספר טלפון</Label>
+                <Label htmlFor="test-phone" className="text-right">
+                  מספר טלפון
+                </Label>
                 <div className="relative">
                   <Input
                     id="test-phone"
                     placeholder="972512345678"
                     value={testPhone}
-                    onChange={(e) => setTestPhone(e.target.value.replace(/[^\d]/g, ''))}
+                    onChange={(e) => setTestPhone(e.target.value.replace(/[^\d]/g, ""))}
                     className="text-left font-mono"
                     dir="ltr"
                     maxLength={15}
@@ -263,7 +277,9 @@ export default function WhatsAppPage() {
                 </p>
               </div>
               <div className="space-y-3">
-                <Label htmlFor="test-message" className="text-right">הודעה</Label>
+                <Label htmlFor="test-message" className="text-right">
+                  הודעה
+                </Label>
                 <Textarea
                   id="test-message"
                   placeholder="הזן הודעת בדיקה..."
@@ -279,7 +295,7 @@ export default function WhatsAppPage() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button 
+              <Button
                 onClick={handleQuickSend}
                 className="bg-green-600 hover:bg-green-700"
                 disabled={!testPhone.trim() || !testMessage.trim()}
@@ -369,9 +385,7 @@ export default function WhatsAppPage() {
               WhatsApp Instance Status
               {instanceData && getStatusIcon(instanceData.status)}
             </CardTitle>
-            <CardDescription>
-              Current status of your WhatsApp Business instance
-            </CardDescription>
+            <CardDescription>Current status of your WhatsApp Business instance</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {loading ? (
@@ -384,33 +398,35 @@ export default function WhatsAppPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Status:</span>
                   <Badge variant={getStatusColor(instanceData.status)}>
-                    {instanceData.status || 'Unknown'}
+                    {instanceData.status || "Unknown"}
                   </Badge>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Instance ID:</span>
                   <code className="text-xs bg-muted px-2 py-1 rounded">
                     {instanceData.instanceID}
                   </code>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Configured:</span>
-                  <Badge variant={instanceData.configured ? 'success' : 'destructive'}>
-                    {instanceData.configured ? 'Yes' : 'No'}
+                  <Badge variant={instanceData.configured ? "default" : "destructive"}>
+                    {instanceData.configured ? "Yes" : "No"}
                   </Badge>
                 </div>
-                
+
                 {instanceData.apiResponseStatus && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">API Response:</span>
-                    <Badge variant={instanceData.apiResponseStatus === 200 ? 'success' : 'destructive'}>
+                    <Badge
+                      variant={instanceData.apiResponseStatus === 200 ? "default" : "destructive"}
+                    >
                       {instanceData.apiResponseStatus}
                     </Badge>
                   </div>
                 )}
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Last Checked:</span>
                   <span className="text-xs text-muted-foreground">
@@ -450,47 +466,45 @@ export default function WhatsAppPage() {
         <Card>
           <CardHeader>
             <CardTitle>Instance Actions</CardTitle>
-            <CardDescription>
-              Manage your WhatsApp instance connection
-            </CardDescription>
+            <CardDescription>Manage your WhatsApp instance connection</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button
-              onClick={() => performAction('status')}
+              onClick={() => performAction("status")}
               disabled={!!actionLoading}
               variant="outline"
               className="w-full"
             >
-              {actionLoading === 'status' && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              {actionLoading === "status" && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
               Check Status
             </Button>
-            
+
             <Button
-              onClick={() => performAction('qr')}
+              onClick={() => performAction("qr")}
               disabled={!!actionLoading}
               variant="outline"
               className="w-full"
             >
-              {actionLoading === 'qr' && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              {actionLoading === "qr" && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
               Get QR Code
             </Button>
-            
+
             <Button
-              onClick={() => performAction('start')}
+              onClick={() => performAction("start")}
               disabled={!!actionLoading}
               className="w-full"
             >
-              {actionLoading === 'start' && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              {actionLoading === "start" && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
               Start Instance
             </Button>
-            
+
             <Button
-              onClick={() => performAction('stop')}
+              onClick={() => performAction("stop")}
               disabled={!!actionLoading}
               variant="destructive"
               className="w-full"
             >
-              {actionLoading === 'stop' && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              {actionLoading === "stop" && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
               Stop Instance
             </Button>
           </CardContent>
@@ -500,19 +514,28 @@ export default function WhatsAppPage() {
         <Card>
           <CardHeader>
             <CardTitle>Send WhatsApp Message</CardTitle>
-            <CardDescription>
-              Send messages through your WhatsApp Business account
-            </CardDescription>
+            <CardDescription>Send messages through your WhatsApp Business account</CardDescription>
           </CardHeader>
           <CardContent>
-            {instanceData?.status === 'connected' || instanceData?.status === 'ready' ? (
-              <WhatsAppSendDialog />
+            {instanceData?.status === "connected" || instanceData?.status === "ready" ? (
+              <div className="space-y-4">
+                <Button onClick={() => setSendDialogOpen(true)} className="w-full">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Send WhatsApp Message
+                </Button>
+                <WhatsAppSendDialog 
+                  open={sendDialogOpen} 
+                  onOpenChange={setSendDialogOpen}
+                  defaultPhone={testPhone}
+                  defaultMessage={testMessage}
+                />
+              </div>
             ) : (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  WhatsApp instance must be connected before sending messages. 
-                  Please connect your instance first by scanning the QR code.
+                  WhatsApp instance must be connected before sending messages. Please connect your
+                  instance first by scanning the QR code.
                 </AlertDescription>
               </Alert>
             )}
@@ -523,9 +546,7 @@ export default function WhatsAppPage() {
         <Card>
           <CardHeader>
             <CardTitle>Troubleshooting</CardTitle>
-            <CardDescription>
-              Common issues and solutions
-            </CardDescription>
+            <CardDescription>Common issues and solutions</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -537,7 +558,7 @@ export default function WhatsAppPage() {
                 <li>• Try creating a new instance if the current one is corrupted</li>
               </ul>
             </div>
-            
+
             <div className="space-y-2">
               <h4 className="font-medium">Connection Issues:</h4>
               <ul className="text-sm text-muted-foreground space-y-1 ml-4">
@@ -547,13 +568,15 @@ export default function WhatsAppPage() {
                 <li>• Wait a few minutes and try again</li>
               </ul>
             </div>
-            
+
             <div className="space-y-2">
               <h4 className="font-medium">Environment Variables:</h4>
               <div className="text-sm space-y-1">
-                <p>Make sure these are set in your <code>.env.local</code> file:</p>
+                <p>
+                  Make sure these are set in your <code>.env.local</code> file:
+                </p>
                 <pre className="bg-muted p-2 rounded text-xs">
-{`WAPULSE_TOKEN=your_token_here
+                  {`WAPULSE_TOKEN=your_token_here
 WAPULSE_INSTANCE_ID=your_instance_id_here`}
                 </pre>
               </div>
@@ -562,5 +585,5 @@ WAPULSE_INSTANCE_ID=your_instance_id_here`}
         </Card>
       </div>
     </DashboardLayout>
-  )
-} 
+  );
+}

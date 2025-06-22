@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { SignUp } from '@clerk/nextjs';
-import { Card, CardContent } from '@/components/ui/card';
-import { PageHeader } from '@/components/ui/page-header';
+import { SignUp } from "@clerk/nextjs";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function SignUpPage() {
   return (
@@ -11,15 +11,14 @@ export default function SignUpPage() {
       <div className="max-w-md mx-auto">
         <Card>
           <CardContent className="p-6 flex justify-center">
-            <SignUp 
+            <SignUp
               appearance={{
                 elements: {
-                  formButtonPrimary: 
-                    "bg-primary text-primary-foreground hover:bg-primary/90",
+                  formButtonPrimary: "bg-primary text-primary-foreground hover:bg-primary/90",
                   card: "shadow-none border-0",
                   headerTitle: "text-2xl font-bold",
                   headerSubtitle: "text-muted-foreground",
-                }
+                },
               }}
               redirectUrl="/dashboard"
               signInUrl="/login"
@@ -29,4 +28,4 @@ export default function SignUpPage() {
       </div>
     </div>
   );
-} 
+}

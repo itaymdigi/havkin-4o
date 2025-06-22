@@ -1,10 +1,10 @@
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { NotificationsList } from "@/components/notifications/notifications-list"
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { NotificationsList } from "@/components/notifications/notifications-list";
 
 export const metadata = {
-  title: 'Notifications',
-  description: 'View your notifications',
-}
+  title: "Notifications",
+  description: "View your notifications",
+};
 
 export default function NotificationsPage() {
   return (
@@ -16,5 +16,5 @@ export default function NotificationsPage() {
         <NotificationsList />
       </div>
     </DashboardLayout>
-  )
-} 
+  );
+}

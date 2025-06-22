@@ -1,21 +1,19 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 export default function SettingsPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings and preferences.
-        </p>
+        <p className="text-muted-foreground">Manage your account settings and preferences.</p>
       </div>
-      
+
       <Separator />
-      
+
       <div className="grid gap-6">
         {/* Profile Settings */}
         <Card>
@@ -44,9 +42,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Email Notifications</Label>
-                <p className="text-sm text-muted-foreground">
-                  Receive notifications via email
-                </p>
+                <p className="text-sm text-muted-foreground">Receive notifications via email</p>
               </div>
               <Button variant="outline" size="sm">
                 Configure
@@ -55,9 +51,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Calendar Reminders</Label>
-                <p className="text-sm text-muted-foreground">
-                  Get reminders for upcoming events
-                </p>
+                <p className="text-sm text-muted-foreground">Get reminders for upcoming events</p>
               </div>
               <Button variant="outline" size="sm">
                 Configure
@@ -75,9 +69,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Change Password</Label>
-                <p className="text-sm text-muted-foreground">
-                  Update your account password
-                </p>
+                <p className="text-sm text-muted-foreground">Update your account password</p>
               </div>
               <Button variant="outline" size="sm">
                 Change
@@ -86,9 +78,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Two-Factor Authentication</Label>
-                <p className="text-sm text-muted-foreground">
-                  Add an extra layer of security
-                </p>
+                <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
               </div>
               <Button variant="outline" size="sm">
                 Enable
@@ -118,5 +108,5 @@ export default function SettingsPage() {
         </Card>
       </div>
     </div>
-  )
-} 
+  );
+}

@@ -1,17 +1,18 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { useUser } from "@clerk/nextjs"
+import { useUser } from "@clerk/nextjs";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -19,19 +20,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { createContact, updateContact } from "@/lib/contacts"
-import { getCompanies } from "@/lib/companies"
-import type { Contact, Company } from "@/types"
+} from "@/components/ui/select";
+import { getCompanies } from "@/lib/companies";
+import { createContact, updateContact } from "@/lib/contacts";
+import type { Company, Contact } from "@/types";
 
 const contactSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -40,37 +40,31 @@ const contactSchema = z.object({
   phone: z.string().optional().nullable(),
   position: z.string().optional().nullable(),
   company_id: z.string().optional().nullable(),
-})
+});
 
-type ContactFormValues = z.infer<typeof contactSchema>
+type ContactFormValues = z.infer<typeof contactSchema>;
 
 interface ContactFormDialogProps {
-  contact?: Contact
-  trigger: React.ReactNode
-  onSuccess: () => void
+  contact?: Contact;
+  trigger: React.ReactNode;
+  onSuccess: () => void;
 }
 
-export function ContactFormDialog({
-  contact,
-  trigger,
-  onSuccess,
-}: ContactFormDialogProps) {
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [companies, setCompanies] = useState<Company[]>([])
-  const { user } = useUser()
+export function ContactFormDialog({ contact, trigger, onSuccess }: ContactFormDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const { user } = useUser();
 
   useEffect(() => {
     async function loadCompanies() {
       try {
-        const data = await getCompanies()
-        setCompanies(data)
-      } catch (error) {
-        console.error("Failed to load companies:", error)
-      }
+        const data = await getCompanies();
+        setCompanies(data);
+      } catch (_error) {}
     }
-    loadCompanies()
-  }, [])
+    loadCompanies();
+  }, []);
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
@@ -82,18 +76,17 @@ export function ContactFormDialog({
       position: contact?.position || "",
       company_id: contact?.company_id || null,
     },
-  })
+  });
 
   async function onSubmit(data: ContactFormValues) {
     if (!user) {
-      console.error("User not authenticated")
-      return
+      return;
     }
 
     try {
-      setLoading(true)
+      setLoading(true);
       if (contact) {
-        await updateContact(contact.id, data)
+        await updateContact(contact.id, data);
       } else {
         await createContact({
           ...data,
@@ -101,14 +94,13 @@ export function ContactFormDialog({
           phone: data.phone ?? null,
           position: data.position ?? null,
           company_id: data.company_id ?? null,
-        } as Omit<Contact, "id" | "created_at" | "updated_at">)
+        } as Omit<Contact, "id" | "created_at" | "updated_at">);
       }
-      setOpen(false)
-      onSuccess()
-    } catch (error) {
-      console.error("Failed to save contact:", error)
+      setOpen(false);
+      onSuccess();
+    } catch (_error) {
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -117,9 +109,7 @@ export function ContactFormDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
-            {contact ? "Edit Contact" : "Add New Contact"}
-          </DialogTitle>
+          <DialogTitle>{contact ? "Edit Contact" : "Add New Contact"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -155,10 +145,7 @@ export function ContactFormDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Company</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value || undefined}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a company" />
@@ -216,11 +203,7 @@ export function ContactFormDialog({
               )}
             />
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
@@ -231,5 +214,5 @@ export function ContactFormDialog({
         </Form>
       </DialogContent>
     </Dialog>
-  )
-} 
+  );
+}

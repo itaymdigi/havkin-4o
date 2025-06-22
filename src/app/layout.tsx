@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
-import { Toaster } from "@/components/ui/toaster";
 import {
   ClerkProvider,
-  SignInButton,
-  SignUpButton,
   SignedIn,
   SignedOut,
+  SignInButton,
+  SignUpButton,
   UserButton,
 } from "@clerk/nextjs";
 import { NotificationsProvider } from "@/components/providers/notifications-provider";
 // Import stagewise toolbar wrapper component
 import { StagewiseToolbarWrapper } from "@/components/stagewise-toolbar";
+import { Toaster } from "@/components/ui/toaster";
+import { cn } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,11 +22,7 @@ export const metadata: Metadata = {
   description: "A comprehensive business management solution",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
       <html lang="en" className="dark" suppressHydrationWarning>

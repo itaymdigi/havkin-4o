@@ -1,27 +1,19 @@
-"use client"
+"use client";
 
-import { Line } from "react-chartjs-2"
 import {
-  Chart as ChartJS,
   CategoryScale,
+  Chart as ChartJS,
+  Filler,
   LinearScale,
-  PointElement,
   LineElement,
+  PointElement,
   Title,
   Tooltip,
-  Filler,
-} from "chart.js"
+} from "chart.js";
+import { Line } from "react-chartjs-2";
 
 // Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Filler
-)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
 // Chart options
 const options = {
@@ -51,10 +43,10 @@ const options = {
       radius: 0,
     },
   },
-}
+};
 
 // Mock data
-const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
 const mockData = {
   labels,
   datasets: [
@@ -66,8 +58,8 @@ const mockData = {
       borderWidth: 2,
     },
   ],
-}
+};
 
 export function LineChart() {
-  return <Line options={options} data={mockData} />
-} 
+  return <Line options={options} data={mockData} />;
+}

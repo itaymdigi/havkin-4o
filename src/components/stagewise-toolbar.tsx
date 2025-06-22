@@ -8,15 +8,16 @@ function StagewiseErrorBoundary({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      if (event.error?.message?.includes('stagewise') || 
-          event.error?.stack?.includes('stagewise')) {
+      if (
+        event.error?.message?.includes("stagewise") ||
+        event.error?.stack?.includes("stagewise")
+      ) {
         setHasError(true);
-        console.warn('Stagewise toolbar error caught:', event.error);
       }
     };
 
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
+    window.addEventListener("error", handleError);
+    return () => window.removeEventListener("error", handleError);
   }, []);
 
   if (hasError) {
@@ -43,22 +44,20 @@ export function StagewiseToolbarWrapper() {
 
   useEffect(() => {
     // Only proceed if we're on client and in development
-    if (!isClient || process.env.NODE_ENV !== 'development') return;
-    
+    if (!isClient || process.env.NODE_ENV !== "development") return;
+
     // Add a small delay to ensure DOM is fully hydrated
     const timer = setTimeout(() => {
       // Dynamically import both packages
       Promise.all([
-        import("@stagewise/toolbar-react").catch((err) => {
-          console.warn('Failed to load stagewise toolbar:', err);
+        import("@stagewise/toolbar-react").catch((_err) => {
           setHasError(true);
           return null;
         }),
-        import("@stagewise-plugins/react").catch((err) => {
-          console.warn('Failed to load stagewise plugin:', err);
+        import("@stagewise-plugins/react").catch((_err) => {
           setHasError(true);
           return null;
-        })
+        }),
       ]).then(([toolbarModule, pluginModule]) => {
         if (toolbarModule?.StagewiseToolbar && pluginModule?.ReactPlugin) {
           setStagewiseToolbar(() => toolbarModule.StagewiseToolbar);
@@ -80,8 +79,8 @@ export function StagewiseToolbarWrapper() {
 
   return (
     <StagewiseErrorBoundary>
-      <div suppressHydrationWarning style={{ position: 'relative', zIndex: 9999 }}>
-        <StagewiseToolbar 
+      <div suppressHydrationWarning style={{ position: "relative", zIndex: 9999 }}>
+        <StagewiseToolbar
           config={{
             plugins: [ReactPlugin],
           }}
@@ -89,4 +88,4 @@ export function StagewiseToolbarWrapper() {
       </div>
     </StagewiseErrorBoundary>
   );
-} 
+}

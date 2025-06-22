@@ -12,7 +12,7 @@ export interface PriceOfferItem {
   quantity: number;
   unitPrice: number;
   total: number;
-  currency: 'USD' | 'ILS';
+  currency: "USD" | "ILS";
 }
 
 export interface PriceOffer {
@@ -25,4 +25,4 @@ export interface PriceOffer {
   date: string;
   validUntil: string;
   notes?: string;
-} 
+}
