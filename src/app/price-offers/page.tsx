@@ -185,7 +185,7 @@ export default function PriceOffersPage() {
           throw new Error(errorData.error || 'Failed to save price offer');
         }
 
-        const result = await response.json();
+        await response.json(); // Parse response but don't store in unused variable
         toast.success('הצעת המחיר נשמרה בהצלחה');
         
         // Generate PDF using our new client-side function

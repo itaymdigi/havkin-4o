@@ -108,7 +108,7 @@ export const generatePriceOfferPDF = (priceOffer: PriceOffer) => {
     });
 
     // Add totals section
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
     doc.setFontSize(12);
     doc.text([
       encodeHebrew(`סה"כ לפני מע"מ: ${formatCurrency(priceOffer.subtotal, 'ILS')}`),
