@@ -23,11 +23,20 @@ interface WhatsAppStatusProps {
 }
 
 interface InstanceStatus {
-  configured: boolean;
-  instanceID: string;
-  status?: string;
-  statusDetails?: Record<string, unknown>;
-  lastChecked?: string;
+  status: string;
+  message?: string;
+  details?: {
+    configured: boolean;
+    instanceId: string;
+    hasToken: boolean;
+    apiIssue?: string;
+    suggestion?: string;
+    timestamp?: string;
+  };
+  instanceId?: string;
+  apiResponse?: Record<string, unknown>;
+  timestamp?: string;
+  qrCode?: string;
   error?: string;
 }
 
@@ -47,11 +56,11 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
       const response = await fetch("/api/whatsapp/instance");
       const result = await response.json();
 
-      if (response.ok && result.success) {
-        setStatusData(result.data);
+      if (response.ok) {
+        setStatusData(result);
         setRetryCount(0); // Reset retry count on success
       } else {
-        setError(result.error || "שגיאה בבדיקת סטטוס WhatsApp");
+        setError(result.error || result.details || "שגיאה בבדיקת סטטוס WhatsApp");
         setRetryCount(prev => prev + 1);
       }
     } catch (_error) {
@@ -67,7 +76,7 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
     checkStatus();
   }, [checkStatus]); // Include checkStatus dependency
 
-  const handleAction = async (action: "start" | "stop" | "qr" | "status") => {
+  const handleAction = async (action: "start" | "stop" | "getQr" | "test_wapulse") => {
     setActionLoading(action);
     setError(null);
 
@@ -83,10 +92,10 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || `Failed to ${action} instance`);
+        throw new Error(result.error || result.details || `Failed to ${action} instance`);
       }
 
-      if (action === "qr" && result.data?.qrCode) {
+      if (action === "getQr" && result.apiResponse?.qrCode) {
         // Show QR code in a dialog or new window
         const qrWindow = window.open("", "_blank", "width=500,height=600");
         if (qrWindow) {
@@ -107,7 +116,7 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
               <body>
                 <div class="container">
                   <h2>🔗 חיבור WhatsApp</h2>
-                  <img src="${result.data.qrCode}" alt="WhatsApp QR Code" />
+                  <img src="${result.apiResponse.qrCode}" alt="WhatsApp QR Code" />
                   <p>סרוק קוד זה באפליקציית WhatsApp שלך</p>
                   <div class="steps">
                     <div class="step">1. פתח את WhatsApp במכשיר שלך</div>
@@ -123,7 +132,7 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
       }
 
       // Refresh status after action
-      if (action !== "qr") {
+      if (action !== "getQr") {
         setTimeout(checkStatus, 1000);
       }
 
@@ -139,12 +148,26 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
+      case "configuration_ok":
+        return (
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200">
+            <CheckCircle className="ml-1 h-3 w-3" />
+            מוגדר נכון
+          </Badge>
+        );
       case "connected":
       case "ready":
         return (
           <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
             <CheckCircle className="ml-1 h-3 w-3" />
             מחובר
+          </Badge>
+        );
+      case "waiting_for_qr":
+        return (
+          <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200">
+            <QrCode className="ml-1 h-3 w-3" />
+            מחכה לסריקה
           </Badge>
         );
       case "disconnected":
@@ -161,6 +184,13 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
           <Badge variant="secondary">
             <Loader2 className="ml-1 h-3 w-3 animate-spin" />
             מתחבר...
+          </Badge>
+        );
+      case "error":
+        return (
+          <Badge variant="destructive">
+            <AlertCircle className="ml-1 h-3 w-3" />
+            שגיאה
           </Badge>
         );
       default:
@@ -191,9 +221,11 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-right">
           <MessageSquare className="h-5 w-5 text-green-600" />
-          סטטוס WhatsApp
+          סטטוס מופע WhatsApp
         </CardTitle>
-        <CardDescription className="text-right">נהל את החיבור שלך ל-WhatsApp Web</CardDescription>
+        <CardDescription className="text-right">
+          מצב נוכחי של מופע WhatsApp Business שלך
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
@@ -203,125 +235,194 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
           </Alert>
         )}
 
-        <div className="flex items-center justify-between">
-          <span>סטטוס תצורה:</span>
-          <Badge variant={statusData?.configured ? "default" : "destructive"}>
-            {statusData?.configured ? (
-              <>
-                <CheckCircle className="ml-1 h-3 w-3" />
-                מוגדר
-              </>
-            ) : (
-              <>
-                <XCircle className="ml-1 h-3 w-3" />
-                לא מוגדר
-              </>
-            )}
-          </Badge>
-        </div>
-
-        {statusData?.configured && (
+        {statusData ? (
           <>
-            <div className="flex items-center justify-between">
-              <span>סטטוס חיבור:</span>
-              {getStatusBadge(statusData.status)}
+            <div className="text-center p-4 bg-muted/50 rounded-lg">
+              {statusData.status === "configuration_ok" ? (
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">אין נתוני מופע זמינים</div>
+                  {statusData.message && (
+                    <p className="text-sm">{statusData.message}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="font-medium">סטטוס: {getStatusBadge(statusData.status)}</div>
+                  {statusData.message && (
+                    <p className="text-sm text-muted-foreground">{statusData.message}</p>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center justify-between">
-              <span>Instance ID:</span>
-              <code className="text-sm bg-muted px-2 py-1 rounded font-mono text-left" dir="ltr">
-                {statusData.instanceID}
-              </code>
-            </div>
-
-            {statusData.lastChecked && (
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span>נבדק לאחרונה:</span>
-                <span className="text-sm text-muted-foreground">
-                  {new Date(statusData.lastChecked).toLocaleTimeString("he-IL")}
-                </span>
+                <span>סטטוס תצורה:</span>
+                <Badge variant={statusData.details?.configured || statusData.status === "configuration_ok" ? "default" : "destructive"}>
+                  {statusData.details?.configured || statusData.status === "configuration_ok" ? (
+                    <>
+                      <CheckCircle className="ml-1 h-3 w-3" />
+                      מוגדר
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="ml-1 h-3 w-3" />
+                      לא מוגדר
+                    </>
+                  )}
+                </Badge>
               </div>
-            )}
+
+              <div className="flex items-center justify-between">
+                <span>סטטוס חיבור:</span>
+                {getStatusBadge(statusData.status)}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span>Instance ID:</span>
+                <code className="text-sm bg-muted px-2 py-1 rounded font-mono text-left" dir="ltr">
+                  {statusData.instanceId || statusData.details?.instanceId || "N/A"}
+                </code>
+              </div>
+
+              {statusData.timestamp && (
+                <div className="flex items-center justify-between">
+                  <span>נבדק לאחרונה:</span>
+                  <span className="text-sm text-muted-foreground">
+                    {new Date(statusData.timestamp).toLocaleTimeString("he-IL")}
+                  </span>
+                </div>
+              )}
+
+              {statusData.details?.apiIssue && (
+                <Alert className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="space-y-2">
+                      <p className="font-medium">בעיית API:</p>
+                      <p className="text-sm">{statusData.details.apiIssue}</p>
+                      {statusData.details.suggestion && (
+                        <p className="text-sm text-muted-foreground">{statusData.details.suggestion}</p>
+                      )}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
           </>
+        ) : (
+          <div className="text-center p-4 bg-muted/50 rounded-lg">
+            <div className="text-sm text-muted-foreground">אין נתוני מופע זמינים</div>
+          </div>
         )}
 
-        {!statusData?.configured ? (
-          <div className="text-center py-4 space-y-4">
-            <p className="text-muted-foreground">
-              נא להגדיר את משתני הסביבה WAPULSE_TOKEN ו-WAPULSE_INSTANCE_ID
-            </p>
-            <Button variant="outline" onClick={checkStatus} className="w-full">
-              <RefreshCw className="ml-2 h-4 w-4" />
-              בדוק שוב
+        <div className="space-y-3 pt-4 border-t">
+          <h4 className="font-medium text-right">פעולות מופע</h4>
+          <p className="text-sm text-muted-foreground text-right">נהל את חיבור מופע WhatsApp שלך</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              onClick={() => checkStatus()}
+              disabled={isLoading}
+              className="w-full"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin ml-1" />
+              ) : (
+                <RefreshCw className="h-4 w-4 ml-1" />
+              )}
+              בדוק סטטוס
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => handleAction("getQr")}
+              disabled={!!actionLoading}
+              className="w-full"
+            >
+              {actionLoading === "getQr" ? (
+                <Loader2 className="h-4 w-4 animate-spin ml-1" />
+              ) : (
+                <QrCode className="h-4 w-4 ml-1" />
+              )}
+              קבל QR Code
+            </Button>
+
+            <Button
+              variant="default"
+              onClick={() => handleAction("start")}
+              disabled={!!actionLoading}
+              className="w-full"
+            >
+              {actionLoading === "start" ? (
+                <Loader2 className="h-4 w-4 animate-spin ml-1" />
+              ) : (
+                <Power className="h-4 w-4 ml-1" />
+              )}
+              הפעל מופע
+            </Button>
+
+            <Button
+              variant="destructive"
+              onClick={() => handleAction("stop")}
+              disabled={!!actionLoading}
+              className="w-full"
+            >
+              {actionLoading === "stop" ? (
+                <Loader2 className="h-4 w-4 animate-spin ml-1" />
+              ) : (
+                <PowerOff className="h-4 w-4 ml-1" />
+              )}
+              עצור מופע
             </Button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handleAction("status")}
-                disabled={actionLoading !== null}
-                className="flex-1 justify-center"
-                size="sm"
-              >
-                {actionLoading === "status" ? (
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="ml-2 h-4 w-4" />
-                )}
-                רענן סטטוס
-              </Button>
 
-              <Button
-                variant="outline"
-                onClick={() => handleAction("qr")}
-                disabled={actionLoading !== null}
-                className="flex-1 justify-center"
-                size="sm"
-              >
-                {actionLoading === "qr" ? (
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <QrCode className="ml-2 h-4 w-4" />
-                )}
-                הצג QR Code
-              </Button>
-            </div>
+          <Button
+            variant="secondary"
+            onClick={() => handleAction("test_wapulse")}
+            disabled={!!actionLoading}
+            className="w-full"
+          >
+            {actionLoading === "test_wapulse" ? (
+              <Loader2 className="h-4 w-4 animate-spin ml-1" />
+            ) : (
+              <AlertCircle className="h-4 w-4 ml-1" />
+            )}
+            בדוק WaPulse API
+          </Button>
+        </div>
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handleAction("start")}
-                disabled={actionLoading !== null}
-                className="flex-1 justify-center"
-                size="sm"
-              >
-                {actionLoading === "start" ? (
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Power className="ml-2 h-4 w-4" />
-                )}
-                התחל Instance
-              </Button>
+        <div className="mt-6 space-y-3 p-4 bg-muted/30 rounded-lg">
+          <h4 className="font-medium text-right">פתרון בעיות</h4>
 
-              <Button
-                variant="outline"
-                onClick={() => handleAction("stop")}
-                disabled={actionLoading !== null}
-                className="flex-1 justify-center"
-                size="sm"
-              >
-                {actionLoading === "stop" ? (
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <PowerOff className="ml-2 h-4 w-4" />
-                )}
-                עצור Instance
-              </Button>
+          <div className="space-y-2 text-sm">
+            <div className="font-medium">שגיאות Bad Gateway 502:</div>
+            <ul className="space-y-1 text-muted-foreground mr-4">
+              <li>• ייתכן ששירות WaPulse חווה בעיות</li>
+              <li>• בדוק שה-WAPULSE_TOKEN וה-WAPULSE_INSTANCE_ID נכונים</li>
+              <li>• ודא שחשבון WaPulse שלך פעיל ויש בו קרדיטים</li>
+              <li>• נסה ליצור מופע חדש אם הנוכחי פגום</li>
+            </ul>
+
+            <div className="font-medium mt-3">בעיות חיבור:</div>
+            <ul className="space-y-1 text-muted-foreground mr-4">
+              <li>• ודא שמופע WhatsApp שלך הופעל ומחובר</li>
+              <li>• סרוק את קוד ה-QR באפליקציית WhatsApp שלך</li>
+              <li>• בדוק את חיבור האינטרנט שלך</li>
+              <li>• המתן כמה דקות ונסה שוב</li>
+            </ul>
+
+            <div className="font-medium mt-3">משתני סביבה:</div>
+            <div className="text-muted-foreground">
+              <div className="mt-1">ודא שהם מוגדרים בקובץ .env.local שלך:</div>
+              <div className="mt-2 font-mono text-xs bg-muted p-2 rounded text-left" dir="ltr">
+                WAPULSE_TOKEN=your_token_here<br/>
+                WAPULSE_INSTANCE_ID=your_instance_id_here
+              </div>
             </div>
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );
