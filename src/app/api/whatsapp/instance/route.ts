@@ -29,147 +29,147 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get environment variables
     const token = process.env.WAPULSE_TOKEN;
-    const instanceID = process.env.WAPULSE_INSTANCE_ID;
+    const instanceId = process.env.WAPULSE_INSTANCE_ID;
 
-    if (!token || !instanceID) {
+    if (!token || !instanceId) {
       return NextResponse.json(
-        {
-          error: "WhatsApp configuration missing. Please check environment variables.",
-          details: {
-            hasToken: !!token,
-            hasInstanceID: !!instanceID,
-            requiredVars: ["WAPULSE_TOKEN", "WAPULSE_INSTANCE_ID"],
-          },
+        { 
+          error: "Missing WaPulse configuration",
+          details: "WAPULSE_TOKEN or WAPULSE_INSTANCE_ID not found in environment variables"
         },
         { status: 500 }
       );
     }
 
-    // Try multiple endpoints to check instance status
-    const endpoints = [
+    console.log("Checking WhatsApp instance status...", { instanceId });
+
+    // Use the correct WaPulse API endpoint with POST method
+    const response = await fetchWithTimeout(
       "https://wapulse.com/api/getQrCode",
-      "https://wapulse.com/api/startInstance", // Sometimes this gives better status info
-    ];
-
-    let lastError = null;
-    let lastResponse = null;
-
-    for (const endpoint of endpoints) {
-      try {
-        const response = await fetchWithTimeout(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            token,
-            instanceID,
-          }),
-        });
-
-        const responseText = await response.text();
-        let result = null;
-
-        try {
-          result = JSON.parse(responseText);
-        } catch (_parseError) {
-          lastError = {
-            error: "Invalid JSON response",
-            rawResponse: responseText.substring(0, 200),
-            endpoint
-          };
-          continue;
-        }
-
-        lastResponse = result;
-
-        // Handle specific responses
-        if (result.error === "Invalid command") {
-          lastError = {
-            error: "WaPulse API endpoint not recognized",
-            suggestion: "The WaPulse service may have changed their API. Please check their documentation or contact support.",
-            endpoint,
-            response: result
-          };
-          continue;
-        }
-
-        // If we get here, we have a valid response
-        let status = "unknown";
-        let needsQR = false;
-        let qrCode = null;
-
-        if (result.error) {
-          if (result.error.includes("already connected") || result.error.includes("connected")) {
-            status = "connected";
-          } else if (result.error.includes("not found")) {
-            status = "not_found";
-          } else {
-            status = "disconnected";
-            needsQR = true;
-          }
-        } else if (result.qr) {
-          status = "needs_qr";
-          needsQR = true;
-          qrCode = result.qr;
-        } else if (result.success) {
-          status = "connected";
-        } else {
-          status = "unknown";
-        }
-
-        return NextResponse.json({
-          success: true,
-          data: {
-            configured: true,
-            instanceID,
-            status,
-            needsQR,
-            qrCode,
-            lastChecked: new Date().toISOString(),
-            endpoint: endpoint,
-            apiResponse: result,
-          },
-        });
-
-      } catch (fetchError) {
-        lastError = {
-          error: "Network error",
-          details: fetchError instanceof Error ? fetchError.message : "Unknown fetch error",
-          endpoint
-        };
-        continue;
-      }
-    }
-
-    // If we get here, all endpoints failed
-    return NextResponse.json(
       {
-        success: false,
-        error: "All WaPulse API endpoints failed",
-        data: {
-          configured: true,
-          instanceID,
-          status: "api_error",
-          error: lastError?.error || "Unknown API error",
-          suggestion: lastError?.error === "WaPulse API endpoint not recognized" 
-            ? "The WaPulse service appears to be having issues or has changed their API. Please contact WaPulse support or try again later."
-            : "There may be an issue with your WaPulse credentials or the service is down.",
-          lastError,
-          lastResponse,
-          testedEndpoints: endpoints,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      },
-      { status: 502 }
+        body: JSON.stringify({
+          token: token,
+          instanceID: instanceId,
+        }),
+      }
     );
 
+    if (!response.ok) {
+      console.error("WaPulse API request failed:", response.status, response.statusText);
+      return NextResponse.json(
+        { 
+          error: "WaPulse API request failed",
+          status: response.status,
+          statusText: response.statusText
+        },
+        { status: response.status }
+      );
+    }
+
+    const responseText = await response.text();
+    console.log("WaPulse API raw response:", responseText);
+
+    // Handle empty response
+    if (!responseText.trim()) {
+      return NextResponse.json(
+        { 
+          error: "Empty response from WaPulse API",
+          details: "The API returned an empty response"
+        },
+        { status: 502 }
+      );
+    }
+
+    // Try to parse JSON response
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("Failed to parse WaPulse response as JSON:", parseError);
+      
+      // Handle plain text responses
+      if (responseText.includes("Invalid command")) {
+        return NextResponse.json(
+          { 
+            error: "WaPulse API returned 'Invalid command'",
+            details: "This usually means the API endpoint or request format is incorrect, or the service is having issues",
+            rawResponse: responseText
+          },
+          { status: 502 }
+        );
+      }
+
+      return NextResponse.json(
+        { 
+          error: "Invalid response format from WaPulse API",
+          details: "Expected JSON but received plain text",
+          rawResponse: responseText
+        },
+        { status: 502 }
+      );
+    }
+
+    console.log("Parsed WaPulse response:", data);
+
+    // Determine instance status based on response
+    let status = "unknown";
+    let qrCode = null;
+
+    if (data.success === false && data.message && data.message.includes("already connected")) {
+      status = "connected";
+    } else if (data.success === true && data.qrCode) {
+      status = "waiting_for_qr";
+      qrCode = data.qrCode;
+    } else if (data.success === true && data.message) {
+      if (data.message.includes("connected") || data.message.includes("ready")) {
+        status = "connected";
+      } else if (data.message.includes("qr") || data.message.includes("scan")) {
+        status = "waiting_for_qr";
+      }
+    } else if (data.success === false) {
+      status = "error";
+    }
+
+    return NextResponse.json({
+      status,
+      qrCode,
+      instanceId,
+      apiResponse: data,
+      timestamp: new Date().toISOString()
+    });
+
   } catch (error) {
+    console.error("WhatsApp instance status check failed:", error);
+    
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        return NextResponse.json(
+          { 
+            error: "Request timeout",
+            details: "WaPulse API request timed out after 10 seconds"
+          },
+          { status: 408 }
+        );
+      }
+      
+      return NextResponse.json(
+        { 
+          error: "Failed to check WhatsApp instance status",
+          details: error.message
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
+      { 
+        error: "Unknown error occurred",
+        details: "An unexpected error occurred while checking instance status"
       },
       { status: 500 }
     );
@@ -184,137 +184,152 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { action } = body;
-
-    // Get environment variables
     const token = process.env.WAPULSE_TOKEN;
-    const instanceID = process.env.WAPULSE_INSTANCE_ID;
+    const instanceId = process.env.WAPULSE_INSTANCE_ID;
 
-    if (!token || !instanceID) {
+    if (!token || !instanceId) {
       return NextResponse.json(
-        {
-          error: "WhatsApp configuration missing. Please check environment variables.",
-          details: {
-            hasToken: !!token,
-            hasInstanceID: !!instanceID,
-            requiredVars: ["WAPULSE_TOKEN", "WAPULSE_INSTANCE_ID"],
-          },
+        { 
+          error: "Missing WaPulse configuration",
+          details: "WAPULSE_TOKEN or WAPULSE_INSTANCE_ID not found in environment variables"
         },
         { status: 500 }
       );
     }
 
-    let endpoint = "";
-    const requestBody = { token, instanceID };
+    const body = await request.json();
+    const { action } = body;
 
+    console.log("WhatsApp instance action:", action, { instanceId });
+
+    let endpoint;
     switch (action) {
       case "start":
-        endpoint = "https://wapulse.com/api/startInstance";
+        endpoint = "startInstance";
         break;
       case "stop":
-        endpoint = "https://wapulse.com/api/stopInstance";
+        endpoint = "stopInstance";
         break;
-      case "qr":
-        endpoint = "https://wapulse.com/api/getQrCode";
+      case "delete":
+        endpoint = "deleteInstance";
         break;
-      case "status":
-        // Use QR endpoint to check status since there's no dedicated status endpoint
-        endpoint = "https://wapulse.com/api/getQrCode";
+      case "getQr":
+        endpoint = "getQrCode";
         break;
       default:
         return NextResponse.json(
-          { error: "Invalid action. Use: start, stop, qr, or status" },
+          { error: "Invalid action", validActions: ["start", "stop", "delete", "getQr"] },
           { status: 400 }
         );
     }
 
-    // Call WaPulse API with timeout
-    let response;
-    try {
-      response = await fetchWithTimeout(endpoint, {
+    // Use the correct WaPulse API endpoint with POST method
+    const response = await fetchWithTimeout(
+      `https://wapulse.com/api/${endpoint}`,
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody),
-      });
-    } catch (fetchError) {
-      const isTimeout = fetchError instanceof Error && fetchError.name === "AbortError";
+        body: JSON.stringify({
+          token: token,
+          instanceID: instanceId,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error("WaPulse API request failed:", response.status, response.statusText);
       return NextResponse.json(
-        {
-          error: isTimeout ? "Request timeout" : "Network error",
-          details: `Failed to connect to WaPulse API for ${action}`,
-          suggestion: "WaPulse service may be experiencing issues. Please try again later.",
-          action,
+        { 
+          error: "WaPulse API request failed",
+          status: response.status,
+          statusText: response.statusText
         },
-        { status: 503 }
+        { status: response.status }
       );
     }
 
-    let result;
-    try {
-      const responseText = await response.text();
-      result = JSON.parse(responseText);
-    } catch (_parseError) {
+    const responseText = await response.text();
+    console.log("WaPulse API raw response:", responseText);
+
+    // Handle empty response
+    if (!responseText.trim()) {
       return NextResponse.json(
-        {
-          error: "Invalid response from WhatsApp service",
-          details: `WaPulse API returned invalid JSON for ${action}`,
-          suggestion: "The WaPulse service may be experiencing issues. Please try again later.",
-          action,
+        { 
+          error: "Empty response from WaPulse API",
+          details: "The API returned an empty response"
         },
         { status: 502 }
       );
     }
 
-    // Handle specific error cases
-    if (result.error) {
-      let errorMessage = result.error;
-      let suggestion = "Check WhatsApp instance status";
-      let statusCode = 400;
-
-      if (result.error.includes("Invalid command")) {
-        errorMessage = "WaPulse API service issue";
-        suggestion = "The WaPulse service appears to be having issues or has changed their API. This is not an issue with your configuration. Please try again later or contact WaPulse support.";
-        statusCode = 502;
-      } else if (result.error.includes("already connected")) {
-        // This is actually a success case for some actions
-        if (action === "start" || action === "status") {
-          return NextResponse.json({
-            success: true,
-            message: "WhatsApp instance is already connected",
-            data: { ...result, status: "connected" },
-          });
-        }
-      } else if (result.error.includes("not found")) {
-        errorMessage = "WhatsApp instance not found";
-        suggestion = "Your instance may have been deleted or the ID is incorrect. You may need to create a new instance.";
-        statusCode = 404;
+    // Try to parse JSON response
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("Failed to parse WaPulse response as JSON:", parseError);
+      
+      // Handle plain text responses
+      if (responseText.includes("Invalid command")) {
+        return NextResponse.json(
+          { 
+            error: "WaPulse API returned 'Invalid command'",
+            details: "This usually means the API endpoint or request format is incorrect, or the service is having issues",
+            rawResponse: responseText
+          },
+          { status: 502 }
+        );
       }
 
       return NextResponse.json(
-        {
-          error: errorMessage,
-          details: result,
-          suggestion,
-          action,
-          isWaPulseIssue: result.error.includes("Invalid command"),
+        { 
+          error: "Invalid response format from WaPulse API",
+          details: "Expected JSON but received plain text",
+          rawResponse: responseText
         },
-        { status: statusCode }
+        { status: 502 }
       );
     }
 
+    console.log("Parsed WaPulse response:", data);
+
     return NextResponse.json({
       success: true,
-      message: `WhatsApp instance ${action} completed successfully`,
-      data: result,
+      action,
+      instanceId,
+      apiResponse: data,
+      timestamp: new Date().toISOString()
     });
+
   } catch (error) {
+    console.error("WhatsApp instance action failed:", error);
+    
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        return NextResponse.json(
+          { 
+            error: "Request timeout",
+            details: "WaPulse API request timed out after 10 seconds"
+          },
+          { status: 408 }
+        );
+      }
+      
+      return NextResponse.json(
+        { 
+          error: "Failed to execute WhatsApp instance action",
+          details: error.message
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
+      { 
+        error: "Unknown error occurred",
+        details: "An unexpected error occurred while executing instance action"
       },
       { status: 500 }
     );
