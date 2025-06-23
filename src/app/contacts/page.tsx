@@ -1,9 +1,17 @@
 "use client";
 
 import { MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ContactFormDialog } from "@/components/contacts/contact-form-dialog";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import {
@@ -25,6 +33,7 @@ import { WhatsAppSendDialog } from "@/components/whatsapp/whatsapp-send-dialog";
 import { getCompanies } from "@/lib/companies";
 import { deleteContact, getContacts } from "@/lib/contacts";
 import type { Company, Contact } from "@/types";
+import Link from "next/link";
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -35,11 +44,7 @@ export default function ContactsPage() {
   const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const [contactsData, companiesData] = await Promise.all([getContacts(), getCompanies()]);
       setContacts(contactsData);
@@ -48,7 +53,11 @@ export default function ContactsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   async function handleDelete(id: string) {
     if (confirm("Are you sure you want to delete this contact?")) {
@@ -85,6 +94,21 @@ export default function ContactsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
+        {/* Breadcrumbs */}
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Contacts</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Contacts</h2>

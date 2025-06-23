@@ -59,6 +59,28 @@ const priceOfferSchema = z.object({
   validUntil: z.string(),
 });
 
+// Utility functions for date formatting
+const formatDateForDisplay = (isoDate: string): string => {
+  if (!isoDate) return '';
+  const date = new Date(isoDate);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+const formatDateForInput = (displayDate: string): string => {
+  if (!displayDate) return '';
+  const [day, month, year] = displayDate.split('/');
+  if (!day || !month || !year) return '';
+  return `${year}-${month}-${day}`;
+};
+
+const formatInputForDate = (isoDate: string): string => {
+  if (!isoDate) return '';
+  return isoDate.split('T')[0]; // Convert ISO string to YYYY-MM-DD
+};
+
 export default function PriceOffersPage() {
   const router = useRouter();
   const { user, isLoading, userId } = useAuth();
@@ -209,7 +231,7 @@ export default function PriceOffersPage() {
         }
 
         const responseData = await response.json();
-        setLastCreatedOfferId(responseData.data.id); // Store the created offer ID
+        setLastCreatedOfferId(responseData.offer.id); // Store the created offer ID
         toast.success("הצעת המחיר נשמרה בהצלחה");
 
         // Generate PDF using our new client-side function
@@ -545,9 +567,33 @@ export default function PriceOffersPage() {
                       name="validUntil"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>תוקף הצעת המחיר</FormLabel>
+                          <FormLabel>תוקף הצעת המחיר (dd/mm/yyyy)</FormLabel>
                           <FormControl>
-                            <Input {...field} type="date" className="text-right" id="valid-until" />
+                            <Input 
+                              value={formatDateForDisplay(field.value)}
+                              onChange={(e) => {
+                                const displayValue = e.target.value;
+                                // Allow partial input while typing
+                                if (displayValue.match(/^\d{0,2}\/?\d{0,2}\/?\d{0,4}$/)) {
+                                  // If complete date format, convert and update
+                                  if (displayValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                                    const isoDate = formatDateForInput(displayValue);
+                                    field.onChange(isoDate);
+                                  }
+                                }
+                              }}
+                              onBlur={(e) => {
+                                const displayValue = e.target.value;
+                                if (displayValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                                  const isoDate = formatDateForInput(displayValue);
+                                  field.onChange(isoDate);
+                                }
+                              }}
+                              placeholder="dd/mm/yyyy"
+                              className="text-right" 
+                              id="valid-until"
+                              maxLength={10}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

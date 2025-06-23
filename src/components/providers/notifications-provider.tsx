@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import {
   getNotifications,
   markAllNotificationsAsRead,
@@ -38,7 +38,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const [error, setError] = useState<string | null>(null);
   const { isSignedIn, isLoaded } = useUser();
 
-  const refreshNotifications = async (): Promise<void> => {
+  const refreshNotifications = useCallback(async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -50,7 +50,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;

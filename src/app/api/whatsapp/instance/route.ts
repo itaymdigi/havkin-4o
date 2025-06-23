@@ -85,6 +85,25 @@ export async function GET() {
       }
 
       if (!statusResponse.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "WaPulse API returned error status",
+            data: {
+              configured: true,
+              instanceID,
+              status: "api_error",
+              error: `WaPulse API returned status ${statusResponse.status}`,
+              suggestion: statusResponse.status === 401 
+                ? "Check your WaPulse credentials in environment variables"
+                : statusResponse.status === 404
+                ? "WhatsApp instance not found - verify your instance ID"
+                : "WaPulse service may be experiencing issues. Please try again later.",
+              apiResponseStatus: statusResponse.status,
+            },
+          },
+          { status: 502 }
+        );
       }
 
       return NextResponse.json({

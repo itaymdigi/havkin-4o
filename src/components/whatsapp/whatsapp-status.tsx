@@ -36,6 +36,8 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [_retryCount, setRetryCount] = useState(0);
+  const _MAX_RETRIES = 3;
 
   const checkStatus = useCallback(async () => {
     setIsLoading(true);
@@ -47,19 +49,23 @@ export function WhatsAppStatus({ className }: WhatsAppStatusProps) {
 
       if (response.ok && result.success) {
         setStatusData(result.data);
+        setRetryCount(0); // Reset retry count on success
       } else {
         setError(result.error || "שגיאה בבדיקת סטטוס WhatsApp");
+        setRetryCount(prev => prev + 1);
       }
     } catch (_error) {
       setError("שגיאה בחיבור לשרת");
+      setRetryCount(prev => prev + 1);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    // Only check status on initial mount
     checkStatus();
-  }, [checkStatus]);
+  }, [checkStatus]); // Include checkStatus dependency
 
   const handleAction = async (action: "start" | "stop" | "qr" | "status") => {
     setActionLoading(action);

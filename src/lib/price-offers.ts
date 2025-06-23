@@ -157,9 +157,28 @@ export async function getPriceOffer(priceOfferId: string) {
 
     // Transform the data to match the expected format
     const transformedOffer = {
-      ...offer,
+      id: offer.id,
       offer_number: offer.id.slice(-8).toUpperCase(), // Generate offer number from ID
-      items: offer.price_offer_items || [],
+      date: offer.created_at,
+      validUntil: offer.valid_until,
+      notes: offer.notes || "",
+      subtotal: offer.total_amount * 0.82, // Assuming 18% tax
+      tax: offer.total_amount * 0.18,
+      total: offer.total_amount,
+      items: (offer.price_offer_items || []).map((item: {
+        id: string;
+        description: string;
+        quantity: number;
+        unit_price: number;
+        currency: string;
+      }) => ({
+        id: item.id,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unit_price,
+        total: item.quantity * item.unit_price,
+        currency: item.currency,
+      })),
       customer: {
         name: offer.customer_name,
         email: offer.customer_email,

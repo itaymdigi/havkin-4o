@@ -1,9 +1,17 @@
 "use client";
 
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CompanyFormDialog } from "@/components/companies/company-form-dialog";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import {
@@ -23,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import { deleteCompany, getCompanies } from "@/lib/companies";
 import type { Company } from "@/types";
+import Link from "next/link";
 
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -30,11 +39,7 @@ export default function CompaniesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [industryFilter, setIndustryFilter] = useState<string>("all");
 
-  useEffect(() => {
-    loadCompanies();
-  }, [loadCompanies]);
-
-  async function loadCompanies() {
+  const loadCompanies = useCallback(async () => {
     try {
       const data = await getCompanies();
       setCompanies(data);
@@ -42,7 +47,11 @@ export default function CompaniesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadCompanies();
+  }, [loadCompanies]);
 
   async function handleDelete(id: string) {
     if (confirm("Are you sure you want to delete this company?")) {
@@ -77,6 +86,21 @@ export default function CompaniesPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
+        {/* Breadcrumbs */}
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Companies</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Companies</h2>

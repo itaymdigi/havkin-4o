@@ -117,7 +117,7 @@ export default function WhatsAppPage() {
 
   useEffect(() => {
     fetchInstanceStatus();
-  }, [fetchInstanceStatus]);
+  }, []); // Remove fetchInstanceStatus from dependencies to prevent infinite loop
 
   const getStatusColor = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status?.toLowerCase()) {
