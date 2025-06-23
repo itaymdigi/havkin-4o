@@ -47,9 +47,10 @@ export async function GET() {
       );
     }
 
-    // Check instance status with improved error handling
+    // Since WaPulse doesn't have a direct status endpoint, we'll try to get QR code
+    // If the instance is already connected, it will return an appropriate response
     try {
-      const statusResponse = await fetchWithTimeout("https://wapulse.com/api/getInstanceStatus", {
+      const qrResponse = await fetchWithTimeout("https://wapulse.com/api/getQrCode", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -60,11 +61,11 @@ export async function GET() {
         }),
       });
 
-      const responseText = await statusResponse.text();
+      const responseText = await qrResponse.text();
 
-      let statusResult = null;
+      let qrResult = null;
       try {
-        statusResult = JSON.parse(responseText);
+        qrResult = JSON.parse(responseText);
       } catch (_parseError) {
         return NextResponse.json(
           {
@@ -84,26 +85,24 @@ export async function GET() {
         );
       }
 
-      if (!statusResponse.ok) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "WaPulse API returned error status",
-            data: {
-              configured: true,
-              instanceID,
-              status: "api_error",
-              error: `WaPulse API returned status ${statusResponse.status}`,
-              suggestion: statusResponse.status === 401 
-                ? "Check your WaPulse credentials in environment variables"
-                : statusResponse.status === 404
-                ? "WhatsApp instance not found - verify your instance ID"
-                : "WaPulse service may be experiencing issues. Please try again later.",
-              apiResponseStatus: statusResponse.status,
-            },
-          },
-          { status: 502 }
-        );
+      // Determine status based on response
+      let status = "unknown";
+      let needsQR = false;
+      
+      if (qrResult.error) {
+        if (qrResult.error.includes("already connected") || qrResult.error.includes("connected")) {
+          status = "connected";
+        } else if (qrResult.error.includes("Invalid command")) {
+          status = "api_error";
+        } else {
+          status = "disconnected";
+          needsQR = true;
+        }
+      } else if (qrResult.qr) {
+        status = "needs_qr";
+        needsQR = true;
+      } else {
+        status = "connected";
       }
 
       return NextResponse.json({
@@ -111,11 +110,12 @@ export async function GET() {
         data: {
           configured: true,
           instanceID,
-          status: statusResult?.status || "unknown",
-          statusDetails: statusResult,
+          status,
+          needsQR,
+          qrCode: qrResult.qr || null,
           lastChecked: new Date().toISOString(),
-          apiResponseStatus: statusResponse.status,
-          // Don't expose the token in the response
+          apiResponseStatus: qrResponse.status,
+          apiResponse: qrResult,
         },
       });
     } catch (statusError) {
@@ -136,7 +136,6 @@ export async function GET() {
             suggestion: isNetworkError
               ? "WaPulse service may be down. Please try again later."
               : "There may be an issue with your WaPulse credentials or the service.",
-            // Don't expose the token in the response
           },
         },
         { status: 503 }
@@ -196,7 +195,8 @@ export async function POST(request: NextRequest) {
         endpoint = "https://wapulse.com/api/getQrCode";
         break;
       case "status":
-        endpoint = "https://wapulse.com/api/getInstanceStatus";
+        // Use QR endpoint to check status since there's no dedicated status endpoint
+        endpoint = "https://wapulse.com/api/getQrCode";
         break;
       default:
         return NextResponse.json(
@@ -231,7 +231,6 @@ export async function POST(request: NextRequest) {
     let result;
     try {
       const responseText = await response.text();
-
       result = JSON.parse(responseText);
     } catch (_parseError) {
       return NextResponse.json(
@@ -245,24 +244,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!response.ok) {
-      // Provide specific error messages based on common issues
-      let errorMessage = result.message || result.error || `Failed to ${action} WhatsApp instance`;
+    // Handle specific error cases
+    if (result.error) {
+      let errorMessage = result.error;
       let suggestion = "Check WhatsApp instance status";
+      let statusCode = 400;
 
-      if (response.status === 401) {
-        errorMessage = "Invalid WaPulse credentials";
-        suggestion = "Verify your WAPULSE_TOKEN in environment variables";
-      } else if (response.status === 404) {
+      if (result.error.includes("Invalid command")) {
+        errorMessage = "WaPulse API endpoint not recognized";
+        suggestion = "The WaPulse API may have changed. Please check their documentation.";
+        statusCode = 502;
+      } else if (result.error.includes("already connected")) {
+        // This is actually a success case for some actions
+        if (action === "start" || action === "status") {
+          return NextResponse.json({
+            success: true,
+            message: "WhatsApp instance is already connected",
+            data: { ...result, status: "connected" },
+          });
+        }
+      } else if (result.error.includes("not found")) {
         errorMessage = "WhatsApp instance not found";
         suggestion = "Verify your WAPULSE_INSTANCE_ID or create a new instance";
-      } else if (response.status === 429) {
-        errorMessage = "Rate limit exceeded";
-        suggestion = "Wait a moment before trying again";
-      } else if (result.error === "Invalid command") {
-        errorMessage = "WaPulse API endpoint not recognized";
-        suggestion =
-          "The WaPulse API may have changed. Please check their documentation or contact support.";
+        statusCode = 404;
       }
 
       return NextResponse.json(
@@ -271,9 +275,8 @@ export async function POST(request: NextRequest) {
           details: result,
           suggestion,
           action,
-          statusCode: response.status,
         },
-        { status: response.status >= 400 && response.status < 500 ? response.status : 502 }
+        { status: statusCode }
       );
     }
 
