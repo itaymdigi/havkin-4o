@@ -131,12 +131,12 @@ export async function POST(request: NextRequest) {
         const responseText = await response.text();
         console.log("WaPulse API test response:", responseText);
 
-        let data;
-        try {
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          data = { rawResponse: responseText };
-        }
+                 let data;
+         try {
+           data = JSON.parse(responseText);
+         } catch (_parseError) {
+           data = { rawResponse: responseText };
+         }
 
         return NextResponse.json({
           success: true,
