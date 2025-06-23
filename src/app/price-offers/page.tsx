@@ -76,11 +76,6 @@ const formatDateForInput = (displayDate: string): string => {
   return `${year}-${month}-${day}`;
 };
 
-const formatInputForDate = (isoDate: string): string => {
-  if (!isoDate) return '';
-  return isoDate.split('T')[0]; // Convert ISO string to YYYY-MM-DD
-};
-
 export default function PriceOffersPage() {
   const router = useRouter();
   const { user, isLoading, userId } = useAuth();
